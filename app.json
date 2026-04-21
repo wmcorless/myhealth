@@ -28,15 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.wmcorless.myhealth",
-      "permissions": [
-        "android.permission.health.READ_HEART_RATE",
-        "android.permission.health.READ_STEPS",
-        "android.permission.health.READ_DISTANCE",
-        "android.permission.health.READ_EXERCISE",
-        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
-        "android.permission.health.READ_RESTING_HEART_RATE"
-      ]
+      "package": "com.wmcorless.myhealth"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,19 +36,7 @@
     "plugins": [
       "expo-web-browser",
       "expo-secure-store",
-      "expo-dev-client",
-      "react-native-health-connect",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "2.1.21",
-            "minSdkVersion": 26,
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35
-          }
-        }
-      ]
+      "expo-dev-client"
     ],
     "extra": {
       "eas": {
