@@ -7,13 +7,19 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "myhealth",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wmcorless.myhealth",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "MyHealth reads your health and fitness data to display it in one place.",
+        "NSHealthUpdateUsageDescription": "MyHealth may write workout summaries to Apple Health."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +27,32 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.wmcorless.myhealth",
+      "permissions": [
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_DISTANCE",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+        "android.permission.health.READ_RESTING_HEART_RATE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-web-browser",
+      "expo-secure-store",
+      "expo-dev-client",
+      "react-native-health-connect",
+      [
+        "react-native-health",
+        {
+          "healthSharePermission": "Allow MyHealth to read your health and fitness data.",
+          "healthUpdatePermission": "Allow MyHealth to update your health and fitness data."
+        }
+      ]
+    ]
   }
 }

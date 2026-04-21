@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(npx create-expo-app@latest *)",
+      "Bash(npx expo *)",
+      "Bash(npm install *)"
+    ]
+  }
+}

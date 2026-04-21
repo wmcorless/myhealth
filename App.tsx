@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
+import { HealthProvider } from './src/context/HealthContext';
 import DashboardScreen from './src/screens/DashboardScreen';
 import HeartRateScreen from './src/screens/HeartRateScreen';
 import WorkoutsScreen from './src/screens/WorkoutsScreen';
@@ -16,38 +17,40 @@ function TabIcon({ icon }: { icon: string }) {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <StatusBar style="dark" />
-      <Tab.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: '#fff' },
-          headerTitleStyle: { fontWeight: '700', color: '#111' },
-          tabBarActiveTintColor: '#E53935',
-          tabBarInactiveTintColor: '#aaa',
-          tabBarStyle: { paddingBottom: 4 },
-        }}
-      >
-        <Tab.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{ tabBarIcon: () => <TabIcon icon="🏠" />, headerShown: false }}
-        />
-        <Tab.Screen
-          name="Heart Rate"
-          component={HeartRateScreen}
-          options={{ tabBarIcon: () => <TabIcon icon="❤️" /> }}
-        />
-        <Tab.Screen
-          name="Workouts"
-          component={WorkoutsScreen}
-          options={{ tabBarIcon: () => <TabIcon icon="🏃" /> }}
-        />
-        <Tab.Screen
-          name="Devices"
-          component={DevicesScreen}
-          options={{ tabBarIcon: () => <TabIcon icon="📱" /> }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <HealthProvider>
+      <NavigationContainer>
+        <StatusBar style="dark" />
+        <Tab.Navigator
+          screenOptions={{
+            headerStyle: { backgroundColor: '#fff' },
+            headerTitleStyle: { fontWeight: '700', color: '#111' },
+            tabBarActiveTintColor: '#E53935',
+            tabBarInactiveTintColor: '#aaa',
+            tabBarStyle: { paddingBottom: 4 },
+          }}
+        >
+          <Tab.Screen
+            name="Dashboard"
+            component={DashboardScreen}
+            options={{ tabBarIcon: () => <TabIcon icon="🏠" />, headerShown: false }}
+          />
+          <Tab.Screen
+            name="Heart Rate"
+            component={HeartRateScreen}
+            options={{ tabBarIcon: () => <TabIcon icon="❤️" /> }}
+          />
+          <Tab.Screen
+            name="Workouts"
+            component={WorkoutsScreen}
+            options={{ tabBarIcon: () => <TabIcon icon="🏃" /> }}
+          />
+          <Tab.Screen
+            name="Devices"
+            component={DevicesScreen}
+            options={{ tabBarIcon: () => <TabIcon icon="📱" /> }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </HealthProvider>
   );
 }
