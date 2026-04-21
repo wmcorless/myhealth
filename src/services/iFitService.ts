@@ -6,6 +6,14 @@ const IFIT_TOKEN_URL = 'https://api.ifit.com/oauth/token';
 const IFIT_LOGIN_URL = 'https://www.ifit.com/web-api/login';
 const IFIT_SETTINGS_URL = 'https://www.ifit.com/settings/apps';
 
+const BROWSER_UA = 'Mozilla/5.0 (Linux; Android 10; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+const BROWSER_HEADERS = {
+  'User-Agent': BROWSER_UA,
+  'Origin': 'https://www.ifit.com',
+  'Referer': 'https://www.ifit.com/login?next=%2Fsettings%2Fapps',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
 const KEY_ACCESS = 'ifit_access_token';
 const KEY_REFRESH = 'ifit_refresh_token';
 const KEY_EXPIRY = 'ifit_token_expiry';
@@ -22,8 +30,12 @@ export async function loginWithiFit(email: string, password: string): Promise<Lo
     // Step 1: Log in to iFit web to get a session cookie
     const loginResp = await fetch(IFIT_LOGIN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      headers: {
+        ...BROWSER_HEADERS,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ email, password, rememberMe: 'false' }),
     });
 
     if (!loginResp.ok) {
@@ -32,12 +44,16 @@ export async function loginWithiFit(email: string, password: string): Promise<Lo
       return { success: false, error: msg };
     }
 
-    // Extract session cookie to authenticate the settings page request
+    // Extract session cookie — React Native fetch doesn't persist cookies automatically
     const cookie = loginResp.headers.get('set-cookie') ?? '';
 
     // Step 2: Fetch the settings page to extract dynamic client credentials
     const settingsResp = await fetch(IFIT_SETTINGS_URL, {
-      headers: { Cookie: cookie, Accept: 'text/html' },
+      headers: {
+        ...BROWSER_HEADERS,
+        'Accept': 'text/html',
+        'Cookie': cookie,
+      },
     });
 
     if (!settingsResp.ok) {
@@ -62,7 +78,11 @@ export async function loginWithiFit(email: string, password: string): Promise<Lo
     // Step 3: Exchange username/password for OAuth token using extracted credentials
     const tokenResp = await fetch(IFIT_TOKEN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        ...BROWSER_HEADERS,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': 'https://onboarding-webview.ifit.com',
+      },
       body: new URLSearchParams({
         grant_type: 'password',
         username: email,
