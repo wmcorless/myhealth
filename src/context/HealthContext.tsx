@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import { BloodGlucoseSample, DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
 import { getTodaySummary, getTodayHeartRate, getTodayBloodGlucose } from '../services/healthAggregator';
-import { isiFitConnected, loginWithiFit, logoutFromiFit, LoginResult } from '../services/iFitService';
-import { isHealthConnectAvailable, hasHealthConnectPermissions, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
+import { hasHealthConnectPermissions, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
 import { initDatabase, saveDailySummary, saveHeartRateSamples, saveBloodGlucoseSamples, saveWorkouts } from '../services/database';
 import { Platform } from 'react-native';
 
@@ -42,8 +41,6 @@ function reducer(state: HealthState, action: Action): HealthState {
 
 interface HealthContextValue extends HealthState {
   refresh: () => Promise<void>;
-  connectiFit: (email: string, password: string) => Promise<LoginResult>;
-  disconnectiFit: () => Promise<void>;
   connectSamsungHealth: () => Promise<boolean>;
 }
 
@@ -57,28 +54,21 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     bloodGlucoseSamples: [],
     devices: [
       { id: 'samsung_health', name: 'Samsung Health', connected: false },
-      { id: 'ifit', name: 'iFit Treadmill', connected: false },
     ],
     error: null,
   });
 
   const refreshDeviceStatus = useCallback(async () => {
-    const [iFitOk, samsungOk] = await Promise.allSettled([
-      isiFitConnected(),
-      Platform.OS === 'android' ? hasHealthConnectPermissions() : Promise.resolve(false),
-    ]);
+    const samsungOk = await (
+      Platform.OS === 'android' ? hasHealthConnectPermissions() : Promise.resolve(false)
+    ).catch(() => false);
     dispatch({
       type: 'DEVICES',
       devices: [
         {
           id: 'samsung_health',
           name: Platform.OS === 'ios' ? 'Apple Health' : 'Samsung Health',
-          connected: samsungOk.status === 'fulfilled' && samsungOk.value,
-        },
-        {
-          id: 'ifit',
-          name: 'iFit Treadmill',
-          connected: iFitOk.status === 'fulfilled' && iFitOk.value,
+          connected: samsungOk,
         },
       ],
     });
@@ -117,18 +107,6 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refresh, refreshDeviceStatus]);
 
-  const connectiFit = useCallback(async (email: string, password: string) => {
-    const result = await loginWithiFit(email, password);
-    await refreshDeviceStatus();
-    if (result.success) refresh();
-    return result;
-  }, [refresh, refreshDeviceStatus]);
-
-  const disconnectiFit = useCallback(async () => {
-    await logoutFromiFit();
-    await refreshDeviceStatus();
-  }, [refreshDeviceStatus]);
-
   useEffect(() => {
     initDatabase()
       .then(() => refreshDeviceStatus())
@@ -137,7 +115,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <HealthContext.Provider value={{ ...state, refresh, connectiFit, disconnectiFit, connectSamsungHealth }}>
+    <HealthContext.Provider value={{ ...state, refresh, connectSamsungHealth }}>
       {children}
     </HealthContext.Provider>
   );

@@ -13,24 +13,21 @@ import {
 } from 'react-native';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import { useHealth } from '../context/HealthContext';
-import { useTreadmill } from '../context/TreadmillContext';
 
 export default function DevicesScreen() {
   const { devices, connectSamsungHealth } = useHealth();
-  const { connectionState, startScan } = useTreadmill();
-  const [connectingSamsung, setConnectingSamsung] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
-  const treadmillConnected = connectionState === 'connected';
   const samsungConnected = devices.find((d) => d.id === 'samsung_health')?.connected ?? false;
 
-  async function handleConnectSamsung() {
-    setConnectingSamsung(true);
+  async function handleConnect() {
+    setConnecting(true);
     const ok = await connectSamsungHealth();
-    setConnectingSamsung(false);
+    setConnecting(false);
     if (!ok) {
       Alert.alert(
         'Permission needed',
-        'Could not get Health Connect permissions. You can also grant them manually in the Health Connect app under App permissions → MyHealth.',
+        'Could not get Health Connect permissions. You can grant them manually in the Health Connect app under App permissions → MyHealth.',
         [
           { text: 'Open Health Connect', onPress: () => Linking.openURL('healthconnect://') },
           { text: 'OK' },
@@ -51,40 +48,15 @@ export default function DevicesScreen() {
 
         <View style={styles.separator} />
 
-        {/* NordicTrack BLE section */}
-        <Text style={styles.sectionTitle}>NordicTrack Treadmill</Text>
-        <Text style={styles.description}>
-          Connect directly to your NordicTrack over Bluetooth for live speed, incline,
-          distance, and heart rate during your workout. No account required.
-        </Text>
-
-        {treadmillConnected ? (
-          <TouchableOpacity style={styles.buttonSecondary} disabled>
-            <Text style={styles.buttonSecondaryText}>✓ NordicTrack Connected</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.button} onPress={startScan}>
-            <Text style={styles.buttonText}>Connect NordicTrack</Text>
-          </TouchableOpacity>
-        )}
-
-        <Text style={styles.hint}>
-          Make sure your treadmill is powered on, then tap Connect. Use the Treadmill tab to see live stats.
-        </Text>
-
-        <View style={styles.separator} />
-
-        {/* Samsung / Apple Health section */}
         <Text style={styles.sectionTitle}>
           {Platform.OS === 'ios' ? 'Apple Health' : 'Samsung Health'}
         </Text>
         <Text style={styles.description}>
           {Platform.OS === 'ios'
             ? 'Grant access to Apple HealthKit to sync heart rate, steps, distance, and workouts.'
-            : 'Grant access to Android Health Connect to sync data from your Samsung watch and Galaxy devices.'}
+            : 'Grant access to Android Health Connect to sync steps, heart rate, calories, and blood glucose from your Samsung devices.'}
         </Text>
 
-        {/* Always show status + always-tappable button */}
         {samsungConnected && (
           <View style={styles.connectedRow}>
             <View style={styles.connectedDot} />
@@ -94,10 +66,10 @@ export default function DevicesScreen() {
 
         <TouchableOpacity
           style={samsungConnected ? styles.buttonSecondary : styles.button}
-          onPress={handleConnectSamsung}
-          disabled={connectingSamsung}
+          onPress={handleConnect}
+          disabled={connecting}
         >
-          {connectingSamsung ? (
+          {connecting ? (
             <ActivityIndicator color={samsungConnected ? '#666' : '#fff'} />
           ) : (
             <Text style={samsungConnected ? styles.buttonSecondaryText : styles.buttonText}>
@@ -109,10 +81,24 @@ export default function DevicesScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>No data showing?</Text>
           <Text style={styles.infoText}>
-            1. Tap the button above to grant permissions{'\n'}
+            1. Tap <Text style={{ fontWeight: '700' }}>Connect Samsung Health</Text> above{'\n'}
             2. Open Samsung Health → ☰ → Settings → Connected services → Health Connect{'\n'}
-            3. Turn on Heart Rate, Steps, Distance, and Calories{'\n'}
+            3. Enable Heart Rate, Steps, Distance, Calories, and <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>{'\n'}
             4. Pull down to refresh on the Dashboard
+          </Text>
+        </View>
+
+        <View style={styles.separator} />
+
+        <Text style={styles.sectionTitle}>Dexcom G7 (Blood Glucose)</Text>
+        <Text style={styles.description}>
+          Your Dexcom G7 readings flow in automatically — no separate login needed.
+        </Text>
+        <View style={[styles.infoBox, { backgroundColor: '#F3F9F3' }]}>
+          <Text style={[styles.infoTitle, { color: '#388E3C' }]}>How it works</Text>
+          <Text style={styles.infoText}>
+            Dexcom app → Samsung Health → Health Connect → MyHealth{'\n\n'}
+            To enable: Samsung Health → ☰ → Settings → Connected services → Health Connect → enable <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>
           </Text>
         </View>
       </ScrollView>
@@ -128,7 +114,6 @@ const styles = StyleSheet.create({
   separator: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 6 },
   description: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 14 },
-  hint: { fontSize: 12, color: '#aaa', lineHeight: 18, marginTop: 10 },
   connectedRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   connectedDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#43A047', marginRight: 8 },
   connectedText: { fontSize: 14, color: '#43A047', fontWeight: '600' },
@@ -158,3 +143,5 @@ const styles = StyleSheet.create({
   infoTitle: { fontSize: 14, fontWeight: '700', color: '#1E88E5', marginBottom: 6 },
   infoText: { fontSize: 13, color: '#444', lineHeight: 20 },
 });
+
+
