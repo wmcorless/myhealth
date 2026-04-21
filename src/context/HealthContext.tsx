@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import { DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
 import { initNativeHealth, getTodaySummary, getTodayHeartRate } from '../services/healthAggregator';
-import { isiFitConnected, loginWithiFit, logoutFromiFit } from '../services/iFitService';
+import { isiFitConnected, loginWithiFit, logoutFromiFit, LoginResult } from '../services/iFitService';
 import { Platform } from 'react-native';
 import { isHealthConnectAvailable } from '../services/healthConnectService';
 
@@ -39,7 +39,7 @@ function reducer(state: HealthState, action: Action): HealthState {
 
 interface HealthContextValue extends HealthState {
   refresh: () => Promise<void>;
-  connectiFit: (email: string, password: string) => Promise<boolean>;
+  connectiFit: (email: string, password: string) => Promise<LoginResult>;
   disconnectiFit: () => Promise<void>;
 }
 
@@ -95,10 +95,10 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const connectiFit = useCallback(async (email: string, password: string) => {
-    const ok = await loginWithiFit(email, password);
+    const result = await loginWithiFit(email, password);
     await refreshDeviceStatus();
-    if (ok) refresh();
-    return ok;
+    if (result.success) refresh();
+    return result;
   }, [refresh, refreshDeviceStatus]);
 
   const disconnectiFit = useCallback(async () => {

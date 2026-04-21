@@ -30,14 +30,14 @@ export default function DevicesScreen() {
       return;
     }
     setConnecting(true);
-    const ok = await connectiFit(email.trim(), password);
+    const result = await connectiFit(email.trim(), password);
     setConnecting(false);
-    if (ok) {
+    if (result.success) {
       setShowForm(false);
       setEmail('');
       setPassword('');
     } else {
-      Alert.alert('Login failed', 'Could not sign in to iFit. Check your email and password and try again.');
+      Alert.alert('Login failed', result.error ?? 'Could not sign in to iFit.');
     }
   }
 
