@@ -25,11 +25,28 @@ export interface DailySummary {
   restingHeartRate?: number;
   caloriesBurned?: number;
   workouts: WorkoutSession[];
+  latestBloodGlucose?: BloodGlucoseSample;
 }
 
 export interface DeviceStatus {
-  id: 'samsung_health' | 'ifit';
+  id: 'samsung_health' | 'ifit' | 'nordictrack';
   name: string;
   connected: boolean;
   lastSync?: Date;
+}
+
+export interface BloodGlucoseSample {
+  timestamp: Date;
+  mgPerDl: number;
+  relationToMeal?: 'fasting' | 'before_meal' | 'after_meal' | 'general';
+  source: 'samsung' | 'manual';
+}
+
+export interface TreadmillData {
+  speedKph: number;
+  inclinePercent: number;
+  distanceMeters: number;
+  heartRate?: number;
+  calories?: number;
+  elapsedSeconds: number;
 }

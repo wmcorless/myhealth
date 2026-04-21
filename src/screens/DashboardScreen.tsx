@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import MetricCard from '../components/MetricCard';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import Logo from '../components/Logo';
 import { useHealth } from '../context/HealthContext';
+
+const POLL_INTERVAL_MS = 60_000;
 
 function fmt(val: number | undefined, decimals = 0): string {
   if (val === undefined || val === 0) return '—';
@@ -20,6 +23,16 @@ function fmt(val: number | undefined, decimals = 0): string {
 
 export default function DashboardScreen() {
   const { summary, devices, loading, refresh } = useHealth();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      intervalRef.current = setInterval(refresh, POLL_INTERVAL_MS);
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }, [refresh])
+  );
 
   const distanceKm = summary?.totalDistanceMeters
     ? summary.totalDistanceMeters / 1000
@@ -61,6 +74,15 @@ export default function DashboardScreen() {
             unit="bpm"
             color="#E53935"
           />
+        </View>
+        <View style={styles.row}>
+          <MetricCard
+            label="Blood Glucose"
+            value={summary?.latestBloodGlucose ? String(summary.latestBloodGlucose.mgPerDl) : '—'}
+            unit="mg/dL"
+            color="#00ACC1"
+          />
+          <MetricCard label="" value="" color="transparent" />
         </View>
 
         <Text style={styles.sectionTitle}>Devices</Text>

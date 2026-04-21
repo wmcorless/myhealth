@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { DailySummary, HeartRateSample } from '../types/health';
+import { BloodGlucoseSample, DailySummary, HeartRateSample } from '../types/health';
 import * as HealthConnect from './healthConnectService';
 import * as HealthKit from './healthKitService';
 import { fetchiFitWorkouts, fetchiFitHeartRateForWorkout, isiFitConnected } from './iFitService';
@@ -26,11 +26,14 @@ export async function getTodaySummary(): Promise<DailySummary> {
     workouts: [],
   };
 
-  const [nativeSummary, iFitWorkouts] = await Promise.allSettled([
+  const [nativeSummary, iFitWorkouts, glucoseSamples] = await Promise.allSettled([
     Platform.OS === 'android'
       ? HealthConnect.fetchTodaySummary()
       : HealthKit.fetchTodaySummary(),
     isiFitConnected().then((c) => (c ? fetchiFitWorkouts(5) : [])),
+    Platform.OS === 'android'
+      ? HealthConnect.fetchTodayBloodGlucose()
+      : Promise.resolve([] as BloodGlucoseSample[]),
   ]);
 
   if (nativeSummary.status === 'fulfilled') {
@@ -43,16 +46,18 @@ export async function getTodaySummary(): Promise<DailySummary> {
     base.workouts = [...base.workouts, ...todayWorkouts];
 
     if (todayWorkouts.length > 0) {
-      const hrSamples = await fetchiFitHeartRateForWorkout(todayWorkouts[0].id).catch(
-        () => []
-      );
+      const hrSamples = await fetchiFitHeartRateForWorkout(todayWorkouts[0].id).catch(() => []);
       if (hrSamples.length > 0) {
-        const avg = Math.round(
-          hrSamples.reduce((s, h) => s + h.bpm, 0) / hrSamples.length
-        );
+        const avg = Math.round(hrSamples.reduce((s, h) => s + h.bpm, 0) / hrSamples.length);
         if (!base.avgHeartRate) base.avgHeartRate = avg;
       }
     }
+  }
+  if (glucoseSamples.status === 'fulfilled' && glucoseSamples.value.length > 0) {
+    const sorted = [...glucoseSamples.value].sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    );
+    base.latestBloodGlucose = sorted[0];
   }
 
   return base;
@@ -77,4 +82,9 @@ export async function getTodayHeartRate(): Promise<HeartRateSample[]> {
     .filter((r): r is PromiseFulfilledResult<HeartRateSample[]> => r.status === 'fulfilled')
     .flatMap((r) => r.value)
     .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+}
+
+export async function getTodayBloodGlucose(): Promise<BloodGlucoseSample[]> {
+  if (Platform.OS !== 'android') return [];
+  return HealthConnect.fetchTodayBloodGlucose();
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
-import { DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
-import { getTodaySummary, getTodayHeartRate } from '../services/healthAggregator';
+import { BloodGlucoseSample, DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
+import { getTodaySummary, getTodayHeartRate, getTodayBloodGlucose } from '../services/healthAggregator';
 import { isiFitConnected, loginWithiFit, logoutFromiFit, LoginResult } from '../services/iFitService';
 import { isHealthConnectAvailable, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
 import { Platform } from 'react-native';
@@ -9,13 +9,14 @@ interface HealthState {
   loading: boolean;
   summary: DailySummary | null;
   heartRateSamples: HeartRateSample[];
+  bloodGlucoseSamples: BloodGlucoseSample[];
   devices: DeviceStatus[];
   error: string | null;
 }
 
 type Action =
   | { type: 'LOADING' }
-  | { type: 'LOADED'; summary: DailySummary; heartRateSamples: HeartRateSample[] }
+  | { type: 'LOADED'; summary: DailySummary; heartRateSamples: HeartRateSample[]; bloodGlucoseSamples: BloodGlucoseSample[] }
   | { type: 'DEVICES'; devices: DeviceStatus[] }
   | { type: 'ERROR'; error: string };
 
@@ -24,7 +25,13 @@ function reducer(state: HealthState, action: Action): HealthState {
     case 'LOADING':
       return { ...state, loading: true, error: null };
     case 'LOADED':
-      return { ...state, loading: false, summary: action.summary, heartRateSamples: action.heartRateSamples };
+      return {
+        ...state,
+        loading: false,
+        summary: action.summary,
+        heartRateSamples: action.heartRateSamples,
+        bloodGlucoseSamples: action.bloodGlucoseSamples,
+      };
     case 'DEVICES':
       return { ...state, devices: action.devices };
     case 'ERROR':
@@ -46,6 +53,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     loading: false,
     summary: null,
     heartRateSamples: [],
+    bloodGlucoseSamples: [],
     devices: [
       { id: 'samsung_health', name: 'Samsung Health', connected: false },
       { id: 'ifit', name: 'iFit Treadmill', connected: false },
@@ -78,17 +86,17 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     dispatch({ type: 'LOADING' });
     try {
-      const [summary, heartRateSamples] = await Promise.all([
+      const [summary, heartRateSamples, bloodGlucoseSamples] = await Promise.all([
         getTodaySummary(),
         getTodayHeartRate(),
+        getTodayBloodGlucose(),
       ]);
-      dispatch({ type: 'LOADED', summary, heartRateSamples });
+      dispatch({ type: 'LOADED', summary, heartRateSamples, bloodGlucoseSamples });
     } catch (e: any) {
       dispatch({ type: 'ERROR', error: e?.message ?? 'Failed to load health data' });
     }
   }, []);
 
-  // Samsung Health: only connect on explicit user tap, never on startup
   const connectSamsungHealth = useCallback(async () => {
     try {
       const ok = await initHealthConnect();
@@ -114,7 +122,6 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     await refreshDeviceStatus();
   }, [refreshDeviceStatus]);
 
-  // On startup: only check status, never initialize native health modules
   useEffect(() => {
     refreshDeviceStatus()
       .then(() => refresh())

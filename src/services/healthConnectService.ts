@@ -1,23 +1,16 @@
-import { Platform, NativeModules } from 'react-native';
-import { DailySummary, HeartRateSample, WorkoutSession } from '../types/health';
-
-// Lazy-load the native module — never import at top level to avoid startup crash
-function getHealthConnect() {
-  try {
-    // Only attempt to load if the native module is registered
-    if (!NativeModules.HealthConnect) return null;
-    return require('react-native-health-connect');
-  } catch {
-    return null;
-  }
-}
+import {
+  initialize,
+  requestPermission,
+  readRecords,
+  getSdkStatus,
+  SdkAvailabilityStatus,
+} from 'react-native-health-connect';
+import { Platform } from 'react-native';
+import { BloodGlucoseSample, DailySummary, HeartRateSample, WorkoutSession } from '../types/health';
 
 export async function isHealthConnectAvailable(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
   try {
-    const hc = getHealthConnect();
-    if (!hc) return false;
-    const { getSdkStatus, SdkAvailabilityStatus } = hc;
     const status = await getSdkStatus();
     return status === SdkAvailabilityStatus.SDK_AVAILABLE;
   } catch {
@@ -27,11 +20,8 @@ export async function isHealthConnectAvailable(): Promise<boolean> {
 
 export async function initHealthConnect(): Promise<boolean> {
   try {
-    const hc = getHealthConnect();
-    if (!hc) return false;
-    const available = await isHealthConnectAvailable();
-    if (!available) return false;
-    return hc.initialize();
+    if (!(await isHealthConnectAvailable())) return false;
+    return initialize();
   } catch {
     return false;
   }
@@ -39,15 +29,14 @@ export async function initHealthConnect(): Promise<boolean> {
 
 export async function requestHealthConnectPermissions(): Promise<boolean> {
   try {
-    const hc = getHealthConnect();
-    if (!hc) return false;
-    const granted = await hc.requestPermission([
+    const granted = await requestPermission([
       { accessType: 'read', recordType: 'HeartRate' },
       { accessType: 'read', recordType: 'Steps' },
       { accessType: 'read', recordType: 'Distance' },
       { accessType: 'read', recordType: 'ExerciseSession' },
       { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
       { accessType: 'read', recordType: 'RestingHeartRate' },
+      { accessType: 'read', recordType: 'BloodGlucose' },
     ]);
     return granted.length > 0;
   } catch {
@@ -57,11 +46,10 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
 
 export async function fetchTodayHeartRate(): Promise<HeartRateSample[]> {
   try {
-    const hc = getHealthConnect();
-    if (!hc) return [];
+    await initialize();
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    const { records } = await hc.readRecords('HeartRate', {
+    const { records } = await readRecords('HeartRate', {
       timeRangeFilter: {
         operator: 'between',
         startTime: start.toISOString(),
@@ -82,8 +70,7 @@ export async function fetchTodayHeartRate(): Promise<HeartRateSample[]> {
 
 export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
   try {
-    const hc = getHealthConnect();
-    if (!hc) return {};
+    await initialize();
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const filter = {
@@ -93,24 +80,20 @@ export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
         endTime: new Date().toISOString(),
       },
     };
-    const [stepsResult, distanceResult, caloriesResult, restingHRResult, exerciseResult] =
-      await Promise.all([
-        hc.readRecords('Steps', filter),
-        hc.readRecords('Distance', filter),
-        hc.readRecords('ActiveCaloriesBurned', filter),
-        hc.readRecords('RestingHeartRate', filter),
-        hc.readRecords('ExerciseSession', filter),
-      ]);
 
-    const steps = (stepsResult.records as any[]).reduce((s: number, r: any) => s + r.count, 0);
-    const distanceMeters = (distanceResult.records as any[]).reduce(
-      (s: number, r: any) => s + (r.distance?.inMeters ?? 0), 0
-    );
-    const calories = (caloriesResult.records as any[]).reduce(
-      (s: number, r: any) => s + (r.energy?.inKilocalories ?? 0), 0
-    );
-    const restingHR = (restingHRResult.records as any[]).at(-1)?.beatsPerMinute;
-    const workouts: WorkoutSession[] = (exerciseResult.records as any[]).map((r: any) => ({
+    const [stepsRes, distRes, calRes, restHRRes, exRes] = await Promise.all([
+      readRecords('Steps', filter),
+      readRecords('Distance', filter),
+      readRecords('ActiveCaloriesBurned', filter),
+      readRecords('RestingHeartRate', filter),
+      readRecords('ExerciseSession', filter),
+    ]);
+
+    const steps = (stepsRes.records as any[]).reduce((s, r) => s + r.count, 0);
+    const distanceMeters = (distRes.records as any[]).reduce((s, r) => s + (r.distance?.inMeters ?? 0), 0);
+    const calories = (calRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
+    const restingHR = (restHRRes.records as any[]).at(-1)?.beatsPerMinute;
+    const workouts: WorkoutSession[] = (exRes.records as any[]).map((r) => ({
       id: r.metadata?.id ?? String(Math.random()),
       startTime: new Date(r.startTime),
       endTime: new Date(r.endTime),
@@ -121,5 +104,35 @@ export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
     return { date: start, steps, totalDistanceMeters: distanceMeters, caloriesBurned: calories, restingHeartRate: restingHR, workouts };
   } catch {
     return {};
+  }
+}
+
+const MEAL_MAP: Record<number, BloodGlucoseSample['relationToMeal']> = {
+  1: 'fasting',
+  2: 'before_meal',
+  3: 'after_meal',
+  4: 'general',
+};
+
+export async function fetchTodayBloodGlucose(): Promise<BloodGlucoseSample[]> {
+  try {
+    await initialize();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const { records } = await readRecords('BloodGlucose', {
+      timeRangeFilter: {
+        operator: 'between',
+        startTime: start.toISOString(),
+        endTime: new Date().toISOString(),
+      },
+    });
+    return (records as any[]).map((r) => ({
+      timestamp: new Date(r.time),
+      mgPerDl: Math.round(r.level?.inMilligramsPerDeciliter ?? r.level?.inMillimolesPerLiter * 18.016 ?? 0),
+      relationToMeal: MEAL_MAP[r.relationToMeal] ?? 'general',
+      source: 'samsung' as const,
+    }));
+  } catch {
+    return [];
   }
 }
