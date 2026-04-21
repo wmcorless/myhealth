@@ -53,6 +53,12 @@
           "healthUpdatePermission": "Allow MyHealth to update your health and fitness data."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "febdd274-af77-4813-b54d-9157f8d261b9"
+      }
+    },
+    "owner": "wmcorless"
   }
 }
