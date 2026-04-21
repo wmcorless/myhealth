@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useReducer, useCallback } 
 import { BloodGlucoseSample, DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
 import { getTodaySummary, getTodayHeartRate, getTodayBloodGlucose } from '../services/healthAggregator';
 import { isiFitConnected, loginWithiFit, logoutFromiFit, LoginResult } from '../services/iFitService';
-import { isHealthConnectAvailable, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
+import { isHealthConnectAvailable, hasHealthConnectPermissions, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
 import { initDatabase, saveDailySummary, saveHeartRateSamples, saveBloodGlucoseSamples, saveWorkouts } from '../services/database';
 import { Platform } from 'react-native';
 
@@ -65,7 +65,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   const refreshDeviceStatus = useCallback(async () => {
     const [iFitOk, samsungOk] = await Promise.allSettled([
       isiFitConnected(),
-      Platform.OS === 'android' ? isHealthConnectAvailable() : Promise.resolve(false),
+      Platform.OS === 'android' ? hasHealthConnectPermissions() : Promise.resolve(false),
     ]);
     dispatch({
       type: 'DEVICES',

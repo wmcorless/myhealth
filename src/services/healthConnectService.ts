@@ -3,6 +3,7 @@ import {
   requestPermission,
   readRecords,
   getSdkStatus,
+  getGrantedPermissions,
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
 import { Platform } from 'react-native';
@@ -13,6 +14,16 @@ export async function isHealthConnectAvailable(): Promise<boolean> {
   try {
     const status = await getSdkStatus();
     return status === SdkAvailabilityStatus.SDK_AVAILABLE;
+  } catch {
+    return false;
+  }
+}
+
+export async function hasHealthConnectPermissions(): Promise<boolean> {
+  try {
+    await initialize();
+    const granted = await getGrantedPermissions();
+    return granted.some((p) => p.recordType === 'Steps' || p.recordType === 'HeartRate');
   } catch {
     return false;
   }
