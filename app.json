@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "myhealth",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -19,7 +19,7 @@
       "infoPlist": {
         "NSHealthShareUsageDescription": "MyHealth reads your health and fitness data to display it in one place.",
         "NSHealthUpdateUsageDescription": "MyHealth may write workout summaries to Apple Health."
-      }
+      },
     },
     "android": {
       "adaptiveIcon": {

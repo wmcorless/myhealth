@@ -10,7 +10,9 @@
       "Bash(eas --version)",
       "Bash(npx eas-cli *)",
       "Bash(eas whoami *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(eas build:view *)",
+      "WebFetch(domain:expo.dev)"
     ]
   }
 }
