@@ -68,10 +68,13 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": ["central"],
+          "modes": [
+            "central"
+          ],
           "bluetoothAlwaysPermission": "Allow MyHealth to use Bluetooth to connect to your NordicTrack treadmill."
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "extra": {
       "eas": {

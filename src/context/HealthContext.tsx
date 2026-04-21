@@ -3,6 +3,7 @@ import { BloodGlucoseSample, DailySummary, DeviceStatus, HeartRateSample } from 
 import { getTodaySummary, getTodayHeartRate, getTodayBloodGlucose } from '../services/healthAggregator';
 import { isiFitConnected, loginWithiFit, logoutFromiFit, LoginResult } from '../services/iFitService';
 import { isHealthConnectAvailable, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
+import { initDatabase, saveDailySummary, saveHeartRateSamples, saveBloodGlucoseSamples, saveWorkouts } from '../services/database';
 import { Platform } from 'react-native';
 
 interface HealthState {
@@ -92,6 +93,12 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
         getTodayBloodGlucose(),
       ]);
       dispatch({ type: 'LOADED', summary, heartRateSamples, bloodGlucoseSamples });
+
+      // Persist to local database (fire and forget)
+      saveDailySummary(summary).catch(() => {});
+      if (heartRateSamples.length) saveHeartRateSamples(heartRateSamples).catch(() => {});
+      if (bloodGlucoseSamples.length) saveBloodGlucoseSamples(bloodGlucoseSamples).catch(() => {});
+      if (summary.workouts.length) saveWorkouts(summary.workouts).catch(() => {});
     } catch (e: any) {
       dispatch({ type: 'ERROR', error: e?.message ?? 'Failed to load health data' });
     }
@@ -123,7 +130,8 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshDeviceStatus]);
 
   useEffect(() => {
-    refreshDeviceStatus()
+    initDatabase()
+      .then(() => refreshDeviceStatus())
       .then(() => refresh())
       .catch(() => {});
   }, []);

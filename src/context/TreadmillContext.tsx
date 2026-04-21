@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useReducer } from 'react';
+import React, { createContext, useContext, useCallback, useReducer, useRef } from 'react';
 import { TreadmillData } from '../types/health';
 import {
   requestBlePermissions,
@@ -9,6 +9,7 @@ import {
   ScanResult,
   ConnectionState,
 } from '../services/treadmillBleService';
+import { saveTreadmillSession } from '../services/database';
 
 interface TreadmillState {
   connectionState: ConnectionState;
@@ -61,6 +62,9 @@ const TreadmillContext = createContext<TreadmillContextValue | null>(null);
 let stopScanFn: (() => void) | null = null;
 
 export function TreadmillProvider({ children }: { children: React.ReactNode }) {
+  const sessionStartRef = useRef<Date | null>(null);
+  const dataSnapshotsRef = useRef<TreadmillData[]>([]);
+
   const [state, dispatch] = useReducer(reducer, {
     connectionState: 'idle',
     foundDevices: [],
@@ -98,9 +102,14 @@ export function TreadmillProvider({ children }: { children: React.ReactNode }) {
     stopScanFn = null;
     dispatch({ type: 'CONNECTING' });
     try {
+      sessionStartRef.current = new Date();
+      dataSnapshotsRef.current = [];
       await connectToTreadmill(
         deviceId,
-        (data) => dispatch({ type: 'DATA', data }),
+        (data) => {
+          dataSnapshotsRef.current.push(data);
+          dispatch({ type: 'DATA', data });
+        },
         () => dispatch({ type: 'DISCONNECTED' }),
       );
       dispatch({ type: 'CONNECTED' });
@@ -110,8 +119,30 @@ export function TreadmillProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const disconnect = useCallback(async () => {
+    const snapshots = dataSnapshotsRef.current;
+    const start = sessionStartRef.current;
     await disconnectTreadmill();
     dispatch({ type: 'DISCONNECTED' });
+
+    if (start && snapshots.length > 0) {
+      const last = snapshots[snapshots.length - 1];
+      const speeds = snapshots.map((d) => d.speedKph).filter((s) => s > 0);
+      const hrs = snapshots.map((d) => d.heartRate).filter((v): v is number => v !== undefined);
+      saveTreadmillSession({
+        startTime: start,
+        endTime: new Date(),
+        maxSpeedKph: speeds.length ? Math.max(...speeds) : undefined,
+        avgSpeedKph: speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : undefined,
+        maxInclinePercent: Math.max(...snapshots.map((d) => d.inclinePercent)),
+        distanceMeters: last.distanceMeters,
+        calories: last.calories,
+        maxHeartRate: hrs.length ? Math.max(...hrs) : undefined,
+        avgHeartRate: hrs.length ? Math.round(hrs.reduce((a, b) => a + b, 0) / hrs.length) : undefined,
+        elapsedSeconds: last.elapsedSeconds,
+      }).catch(() => {});
+      dataSnapshotsRef.current = [];
+      sessionStartRef.current = null;
+    }
   }, []);
 
   return (
