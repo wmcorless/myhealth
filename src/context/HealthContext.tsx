@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import { DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
-import { initNativeHealth, getTodaySummary, getTodayHeartRate } from '../services/healthAggregator';
+import { getTodaySummary, getTodayHeartRate } from '../services/healthAggregator';
 import { isiFitConnected, loginWithiFit, logoutFromiFit, LoginResult } from '../services/iFitService';
+import { isHealthConnectAvailable, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
 import { Platform } from 'react-native';
-import { isHealthConnectAvailable } from '../services/healthConnectService';
 
 interface HealthState {
   loading: boolean;
@@ -24,12 +24,7 @@ function reducer(state: HealthState, action: Action): HealthState {
     case 'LOADING':
       return { ...state, loading: true, error: null };
     case 'LOADED':
-      return {
-        ...state,
-        loading: false,
-        summary: action.summary,
-        heartRateSamples: action.heartRateSamples,
-      };
+      return { ...state, loading: false, summary: action.summary, heartRateSamples: action.heartRateSamples };
     case 'DEVICES':
       return { ...state, devices: action.devices };
     case 'ERROR':
@@ -41,6 +36,7 @@ interface HealthContextValue extends HealthState {
   refresh: () => Promise<void>;
   connectiFit: (email: string, password: string) => Promise<LoginResult>;
   disconnectiFit: () => Promise<void>;
+  connectSamsungHealth: () => Promise<boolean>;
 }
 
 const HealthContext = createContext<HealthContextValue | null>(null);
@@ -58,9 +54,9 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const refreshDeviceStatus = useCallback(async () => {
-    const [iFitOk, nativeAvailable] = await Promise.all([
+    const [iFitOk, samsungOk] = await Promise.allSettled([
       isiFitConnected(),
-      Platform.OS === 'android' ? isHealthConnectAvailable() : Promise.resolve(true),
+      Platform.OS === 'android' ? isHealthConnectAvailable() : Promise.resolve(false),
     ]);
     dispatch({
       type: 'DEVICES',
@@ -68,14 +64,12 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
         {
           id: 'samsung_health',
           name: Platform.OS === 'ios' ? 'Apple Health' : 'Samsung Health',
-          connected: nativeAvailable,
-          lastSync: nativeAvailable ? new Date() : undefined,
+          connected: samsungOk.status === 'fulfilled' && samsungOk.value,
         },
         {
           id: 'ifit',
           name: 'iFit Treadmill',
-          connected: iFitOk,
-          lastSync: iFitOk ? new Date() : undefined,
+          connected: iFitOk.status === 'fulfilled' && iFitOk.value,
         },
       ],
     });
@@ -94,6 +88,20 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Samsung Health: only connect on explicit user tap, never on startup
+  const connectSamsungHealth = useCallback(async () => {
+    try {
+      const ok = await initHealthConnect();
+      if (!ok) return false;
+      const granted = await requestHealthConnectPermissions();
+      await refreshDeviceStatus();
+      if (granted) refresh();
+      return granted;
+    } catch {
+      return false;
+    }
+  }, [refresh, refreshDeviceStatus]);
+
   const connectiFit = useCallback(async (email: string, password: string) => {
     const result = await loginWithiFit(email, password);
     await refreshDeviceStatus();
@@ -106,17 +114,15 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     await refreshDeviceStatus();
   }, [refreshDeviceStatus]);
 
+  // On startup: only check status, never initialize native health modules
   useEffect(() => {
-    initNativeHealth()
-      .then(() => refreshDeviceStatus())
+    refreshDeviceStatus()
       .then(() => refresh())
       .catch(() => {});
   }, []);
 
   return (
-    <HealthContext.Provider
-      value={{ ...state, refresh, connectiFit, disconnectiFit }}
-    >
+    <HealthContext.Provider value={{ ...state, refresh, connectiFit, disconnectiFit, connectSamsungHealth }}>
       {children}
     </HealthContext.Provider>
   );

@@ -16,8 +16,9 @@ import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import { useHealth } from '../context/HealthContext';
 
 export default function DevicesScreen() {
-  const { devices, connectiFit, disconnectiFit } = useHealth();
+  const { devices, connectiFit, disconnectiFit, connectSamsungHealth } = useHealth();
   const [connecting, setConnecting] = useState(false);
+  const [connectingSamsung, setConnectingSamsung] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -132,9 +133,30 @@ export default function DevicesScreen() {
           </Text>
           <Text style={styles.description}>
             {Platform.OS === 'ios'
-              ? 'Health data syncs automatically via Apple HealthKit. Grant permissions when prompted on first launch.'
-              : 'Health data from your Samsung watch syncs via Android Health Connect. Grant permissions when prompted on first launch.'}
+              ? 'Grant access to Apple HealthKit to sync heart rate, steps, distance, and workouts.'
+              : 'Grant access to Android Health Connect to sync data from your Samsung watch and Galaxy devices.'}
           </Text>
+          {devices.find((d) => d.id === 'samsung_health')?.connected ? (
+            <TouchableOpacity style={styles.buttonSecondary} disabled>
+              <Text style={styles.buttonSecondaryText}>✓ Samsung Health Connected</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.button}
+              onPress={async () => {
+                setConnectingSamsung(true);
+                const ok = await connectSamsungHealth();
+                setConnectingSamsung(false);
+                if (!ok) Alert.alert('Not available', 'Health Connect is not available on this device. Make sure the Health Connect app is installed from Google Play.');
+              }}
+              disabled={connectingSamsung}
+            >
+              {connectingSamsung
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.buttonText}>Connect Samsung Health</Text>
+              }
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
