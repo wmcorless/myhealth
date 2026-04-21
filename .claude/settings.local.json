@@ -12,7 +12,8 @@
       "Bash(eas whoami *)",
       "Bash(npm uninstall *)",
       "Bash(eas build:view *)",
-      "WebFetch(domain:expo.dev)"
+      "WebFetch(domain:expo.dev)",
+      "WebFetch(domain:job-logs.eascdn.net)"
     ]
   }
 }
