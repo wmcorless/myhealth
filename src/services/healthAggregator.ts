@@ -5,11 +5,15 @@ import * as HealthKit from './healthKitService';
 import { fetchiFitWorkouts, fetchiFitHeartRateForWorkout, isiFitConnected } from './iFitService';
 
 export async function initNativeHealth(): Promise<void> {
-  if (Platform.OS === 'android') {
-    const ok = await HealthConnect.initHealthConnect();
-    if (ok) await HealthConnect.requestHealthConnectPermissions();
-  } else if (Platform.OS === 'ios') {
-    await HealthKit.initHealthKit();
+  try {
+    if (Platform.OS === 'android') {
+      const ok = await HealthConnect.initHealthConnect();
+      if (ok) await HealthConnect.requestHealthConnectPermissions();
+    } else if (Platform.OS === 'ios') {
+      await HealthKit.initHealthKit();
+    }
+  } catch {
+    // Health Connect unavailable — app continues without native health data
   }
 }
 

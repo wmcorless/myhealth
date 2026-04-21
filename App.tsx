@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
 import { HealthProvider } from './src/context/HealthContext';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import DashboardScreen from './src/screens/DashboardScreen';
 import HeartRateScreen from './src/screens/HeartRateScreen';
 import WorkoutsScreen from './src/screens/WorkoutsScreen';
@@ -17,6 +18,7 @@ function TabIcon({ icon }: { icon: string }) {
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <HealthProvider>
       <NavigationContainer>
         <StatusBar style="dark" />
@@ -52,5 +54,6 @@ export default function App() {
         </Tab.Navigator>
       </NavigationContainer>
     </HealthProvider>
+    </ErrorBoundary>
   );
 }
