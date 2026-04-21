@@ -1,20 +1,53 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text } from 'react-native';
+import DashboardScreen from './src/screens/DashboardScreen';
+import HeartRateScreen from './src/screens/HeartRateScreen';
+import WorkoutsScreen from './src/screens/WorkoutsScreen';
+import DevicesScreen from './src/screens/DevicesScreen';
+
+const Tab = createBottomTabNavigator();
+
+function TabIcon({ icon }: { icon: string }) {
+  return <Text style={{ fontSize: 20 }}>{icon}</Text>;
+}
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <StatusBar style="dark" />
+      <Tab.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: '#fff' },
+          headerTitleStyle: { fontWeight: '700', color: '#111' },
+          tabBarActiveTintColor: '#E53935',
+          tabBarInactiveTintColor: '#aaa',
+          tabBarStyle: { paddingBottom: 4 },
+        }}
+      >
+        <Tab.Screen
+          name="Dashboard"
+          component={DashboardScreen}
+          options={{ tabBarIcon: () => <TabIcon icon="🏠" />, headerShown: false }}
+        />
+        <Tab.Screen
+          name="Heart Rate"
+          component={HeartRateScreen}
+          options={{ tabBarIcon: () => <TabIcon icon="❤️" /> }}
+        />
+        <Tab.Screen
+          name="Workouts"
+          component={WorkoutsScreen}
+          options={{ tabBarIcon: () => <TabIcon icon="🏃" /> }}
+        />
+        <Tab.Screen
+          name="Devices"
+          component={DevicesScreen}
+          options={{ tabBarIcon: () => <TabIcon icon="📱" /> }}
+        />
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

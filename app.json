@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "myhealth-scaffold",
-    "slug": "myhealth-scaffold",
+    "name": "MyHealth",
+    "slug": "myhealth",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

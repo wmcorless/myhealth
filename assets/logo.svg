@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Red circle background -->
+  <circle cx="100" cy="100" r="100" fill="#E53935"/>
+  <!-- White heart -->
+  <path d="M100 140 C60 110, 30 85, 30 65 C30 45, 48 30, 65 30 C78 30, 90 38, 100 50 C110 38, 122 30, 135 30 C152 30, 170 45, 170 65 C170 85, 140 110, 100 140 Z" fill="#FFFFFF"/>
+</svg>
