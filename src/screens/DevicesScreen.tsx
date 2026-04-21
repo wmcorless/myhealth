@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,31 @@ import {
   Platform,
   ScrollView,
   Linking,
+  AppState,
 } from 'react-native';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import { useHealth } from '../context/HealthContext';
 
 export default function DevicesScreen() {
-  const { devices, connectSamsungHealth } = useHealth();
+  const { devices, connectSamsungHealth, refreshDeviceStatus, refresh } = useHealth();
   const [connecting, setConnecting] = useState(false);
+  const appState = useRef(AppState.currentState);
+  const waitingForReturn = useRef(false);
 
   const samsungConnected = devices.find((d) => d.id === 'samsung_health')?.connected ?? false;
+
+  // When user returns from Health Connect, re-check permissions and refresh data.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async (next) => {
+      if (next === 'active' && appState.current !== 'active' && waitingForReturn.current) {
+        waitingForReturn.current = false;
+        await refreshDeviceStatus();
+        refresh();
+      }
+      appState.current = next;
+    });
+    return () => sub.remove();
+  }, [refreshDeviceStatus, refresh]);
 
   async function handleConnect() {
     setConnecting(true);
@@ -33,6 +49,9 @@ export default function DevicesScreen() {
           { text: 'OK' },
         ],
       );
+    } else {
+      // User is now in Health Connect — detect when they return.
+      waitingForReturn.current = true;
     }
   }
 
@@ -73,7 +92,7 @@ export default function DevicesScreen() {
             <ActivityIndicator color={samsungConnected ? '#666' : '#fff'} />
           ) : (
             <Text style={samsungConnected ? styles.buttonSecondaryText : styles.buttonText}>
-              {samsungConnected ? 'Re-grant Permissions' : 'Connect Samsung Health'}
+              {samsungConnected ? 'Re-open Health Connect' : 'Open Health Connect'}
             </Text>
           )}
         </TouchableOpacity>
@@ -81,10 +100,10 @@ export default function DevicesScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>No data showing?</Text>
           <Text style={styles.infoText}>
-            1. Tap <Text style={{ fontWeight: '700' }}>Connect Samsung Health</Text> above{'\n'}
-            2. Open Samsung Health → ☰ → Settings → Connected services → Health Connect{'\n'}
-            3. Enable Heart Rate, Steps, Distance, Calories, and <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>{'\n'}
-            4. Pull down to refresh on the Dashboard
+            1. Tap <Text style={{ fontWeight: '700' }}>Open Health Connect</Text> above{'\n'}
+            2. In Health Connect → App permissions → MyHealth → grant all permissions{'\n'}
+            3. Also: Samsung Health → ☰ → Settings → Health Connect → enable <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>{'\n'}
+            4. Return to MyHealth — data refreshes automatically
           </Text>
         </View>
 

@@ -1,13 +1,14 @@
 import {
   initialize,
-  requestPermission,
   readRecords,
   getSdkStatus,
   getGrantedPermissions,
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { BloodGlucoseSample, DailySummary, HeartRateSample, WorkoutSession } from '../types/health';
+
+const HC_PACKAGE = 'com.google.android.apps.healthdata';
 
 export async function isHealthConnectAvailable(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
@@ -38,20 +39,17 @@ export async function initHealthConnect(): Promise<boolean> {
   }
 }
 
-export async function requestHealthConnectPermissions(): Promise<boolean> {
-  try {
-    const granted = await requestPermission([
-      { accessType: 'read', recordType: 'HeartRate' },
-      { accessType: 'read', recordType: 'Steps' },
-      { accessType: 'read', recordType: 'Distance' },
-      { accessType: 'read', recordType: 'ExerciseSession' },
-      { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
-      { accessType: 'read', recordType: 'RestingHeartRate' },
-      { accessType: 'read', recordType: 'BloodGlucose' },
-    ]);
-    return granted.length > 0;
-  } catch {
-    return false;
+/** Opens Health Connect so the user can grant permissions manually. */
+export async function openHealthConnectPermissions(): Promise<void> {
+  // Try the deep-link to MyHealth's permission page first; fall back to app home.
+  const deepLink = `healthconnect://androidx.health.ACTION_MANAGE_HEALTH_PERMISSIONS?package_name=com.wmcorless.myhealth`;
+  const canOpen = await Linking.canOpenURL(deepLink).catch(() => false);
+  if (canOpen) {
+    await Linking.openURL(deepLink);
+  } else {
+    await Linking.openURL(`market://details?id=${HC_PACKAGE}`).catch(() =>
+      Linking.openURL(`https://play.google.com/store/apps/details?id=${HC_PACKAGE}`)
+    );
   }
 }
 
