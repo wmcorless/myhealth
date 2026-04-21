@@ -6,7 +6,11 @@
       "Bash(gh repo *)",
       "Bash(npx create-expo-app@latest *)",
       "Bash(npx expo *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(eas --version)",
+      "Bash(npx eas-cli *)",
+      "Bash(eas whoami *)",
+      "Bash(npm uninstall *)"
     ]
   }
 }

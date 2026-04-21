@@ -39,7 +39,7 @@ function reducer(state: HealthState, action: Action): HealthState {
 
 interface HealthContextValue extends HealthState {
   refresh: () => Promise<void>;
-  connectiFit: () => Promise<boolean>;
+  connectiFit: (email: string, password: string) => Promise<boolean>;
   disconnectiFit: () => Promise<void>;
 }
 
@@ -94,8 +94,8 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const connectiFit = useCallback(async () => {
-    const ok = await loginWithiFit();
+  const connectiFit = useCallback(async (email: string, password: string) => {
+    const ok = await loginWithiFit(email, password);
     await refreshDeviceStatus();
     if (ok) refresh();
     return ok;

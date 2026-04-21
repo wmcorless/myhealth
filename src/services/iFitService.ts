@@ -1,30 +1,54 @@
-import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from 'expo-secure-store';
-import * as Crypto from 'expo-crypto';
-import {
-  IFIT_CLIENT_ID,
-  IFIT_CLIENT_SECRET,
-  IFIT_REDIRECT_URI,
-  IFIT_API_BASE,
-  IFIT_AUTH_URL,
-  IFIT_TOKEN_URL,
-} from '../config/env';
+import { IFIT_API_BASE, IFIT_TOKEN_URL } from '../config/env';
 import { WorkoutSession, HeartRateSample } from '../types/health';
 
-const STORAGE_KEY_ACCESS = 'ifit_access_token';
-const STORAGE_KEY_REFRESH = 'ifit_refresh_token';
-const STORAGE_KEY_EXPIRY = 'ifit_token_expiry';
+// iFit uses the same client credentials their mobile app uses
+const IFIT_CLIENT_ID = 'my-fitness-pal';
+const IFIT_CLIENT_SECRET = 'OAuthSecret';
+
+const KEY_ACCESS = 'ifit_access_token';
+const KEY_REFRESH = 'ifit_refresh_token';
+const KEY_EXPIRY = 'ifit_token_expiry';
+
+export async function loginWithiFit(email: string, password: string): Promise<boolean> {
+  const resp = await fetch(IFIT_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'password',
+      username: email,
+      password,
+      client_id: IFIT_CLIENT_ID,
+      client_secret: IFIT_CLIENT_SECRET,
+    }).toString(),
+  });
+
+  if (!resp.ok) return false;
+  await storeTokens(await resp.json());
+  return true;
+}
+
+export async function logoutFromiFit(): Promise<void> {
+  await SecureStore.deleteItemAsync(KEY_ACCESS);
+  await SecureStore.deleteItemAsync(KEY_REFRESH);
+  await SecureStore.deleteItemAsync(KEY_EXPIRY);
+}
+
+export async function isiFitConnected(): Promise<boolean> {
+  const token = await getStoredToken();
+  return token !== null;
+}
 
 export async function getStoredToken(): Promise<string | null> {
-  const expiry = await SecureStore.getItemAsync(STORAGE_KEY_EXPIRY);
+  const expiry = await SecureStore.getItemAsync(KEY_EXPIRY);
   if (expiry && Date.now() < Number(expiry)) {
-    return SecureStore.getItemAsync(STORAGE_KEY_ACCESS);
+    return SecureStore.getItemAsync(KEY_ACCESS);
   }
   return refreshAccessToken();
 }
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = await SecureStore.getItemAsync(STORAGE_KEY_REFRESH);
+  const refreshToken = await SecureStore.getItemAsync(KEY_REFRESH);
   if (!refreshToken) return null;
 
   const resp = await fetch(IFIT_TOKEN_URL, {
@@ -38,7 +62,10 @@ async function refreshAccessToken(): Promise<string | null> {
     }).toString(),
   });
 
-  if (!resp.ok) return null;
+  if (!resp.ok) {
+    await logoutFromiFit();
+    return null;
+  }
   const data = await resp.json();
   await storeTokens(data);
   return data.access_token;
@@ -49,65 +76,14 @@ async function storeTokens(data: {
   refresh_token?: string;
   expires_in: number;
 }) {
-  await SecureStore.setItemAsync(STORAGE_KEY_ACCESS, data.access_token);
+  await SecureStore.setItemAsync(KEY_ACCESS, data.access_token);
   if (data.refresh_token) {
-    await SecureStore.setItemAsync(STORAGE_KEY_REFRESH, data.refresh_token);
+    await SecureStore.setItemAsync(KEY_REFRESH, data.refresh_token);
   }
   await SecureStore.setItemAsync(
-    STORAGE_KEY_EXPIRY,
+    KEY_EXPIRY,
     String(Date.now() + data.expires_in * 1000 - 60_000)
   );
-}
-
-export async function loginWithiFit(): Promise<boolean> {
-  const codeVerifier = await generateCodeVerifier();
-  const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-  const authRequest = new AuthSession.AuthRequest({
-    clientId: IFIT_CLIENT_ID,
-    redirectUri: IFIT_REDIRECT_URI,
-    scopes: ['workouts', 'profile'],
-    extraParams: {
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-    },
-    usePKCE: false, // manual PKCE above
-  });
-
-  const result = await authRequest.promptAsync({
-    authorizationEndpoint: IFIT_AUTH_URL,
-  });
-
-  if (result.type !== 'success') return false;
-
-  const { code } = result.params;
-  const tokenResp = await fetch(IFIT_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: IFIT_REDIRECT_URI,
-      client_id: IFIT_CLIENT_ID,
-      client_secret: IFIT_CLIENT_SECRET,
-      code_verifier: codeVerifier,
-    }).toString(),
-  });
-
-  if (!tokenResp.ok) return false;
-  await storeTokens(await tokenResp.json());
-  return true;
-}
-
-export async function logoutFromiFit(): Promise<void> {
-  await SecureStore.deleteItemAsync(STORAGE_KEY_ACCESS);
-  await SecureStore.deleteItemAsync(STORAGE_KEY_REFRESH);
-  await SecureStore.deleteItemAsync(STORAGE_KEY_EXPIRY);
-}
-
-export async function isiFitConnected(): Promise<boolean> {
-  const token = await getStoredToken();
-  return token !== null;
 }
 
 async function iFitGet<T>(path: string): Promise<T> {
@@ -145,26 +121,4 @@ export async function fetchiFitHeartRateForWorkout(
     bpm: s.heart_rate,
     source: 'ifit' as const,
   }));
-}
-
-// PKCE helpers
-async function generateCodeVerifier(): Promise<string> {
-  const bytes = await Crypto.getRandomBytesAsync(32);
-  return base64UrlEncode(bytes);
-}
-
-async function generateCodeChallenge(verifier: string): Promise<string> {
-  const digest = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    verifier,
-    { encoding: Crypto.CryptoEncoding.BASE64 }
-  );
-  return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-
-function base64UrlEncode(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
 }
