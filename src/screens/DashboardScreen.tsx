@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import MetricCard from '../components/MetricCard';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
+import Logo from '../components/Logo';
 import { useHealth } from '../context/HealthContext';
 
 function fmt(val: number | undefined, decimals = 0): string {
@@ -33,6 +34,7 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
       >
+        <Logo size={56} />
         <Text style={styles.heading}>Today</Text>
 
         {loading && !summary && (
@@ -74,7 +76,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F6FA' },
   scroll: { flex: 1 },
   content: { padding: 16 },
-  heading: { fontSize: 28, fontWeight: '700', color: '#111', marginBottom: 12 },
+  heading: { fontSize: 28, fontWeight: '700', color: '#111', marginBottom: 12, marginTop: 8 },
   row: { flexDirection: 'row', marginBottom: 4 },
   sectionTitle: {
     fontSize: 18,
