@@ -26,10 +26,10 @@ export default function DevicesScreen() {
     setConnecting(false);
     if (!ok) {
       Alert.alert(
-        'Permission needed',
-        'Could not get Health Connect permissions. You can grant them manually in the Health Connect app under App permissions → MyHealth.',
+        'Health Connect Required',
+        'Health Connect is not available or needs to be updated. Install or update it from the Play Store, then try again.',
         [
-          { text: 'Open Health Connect', onPress: () => Linking.openURL('healthconnect://') },
+          { text: 'Open Play Store', onPress: () => Linking.openURL('market://details?id=com.google.android.apps.healthdata') },
           { text: 'OK' },
         ],
       );
