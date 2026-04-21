@@ -21,6 +21,7 @@ export default function DevicesScreen() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const iFitDevice = devices.find((d) => d.id === 'ifit');
 
@@ -86,14 +87,22 @@ export default function DevicesScreen() {
                 value={email}
                 onChangeText={setEmail}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="iFit password"
-                placeholderTextColor="#aaa"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="iFit password"
+                  placeholderTextColor="#aaa"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword((v) => !v)}
+                >
+                  <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity
                 style={styles.button}
                 onPress={handleConnect}
@@ -151,6 +160,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e0e0e0',
   },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: '#111',
+  },
+  eyeButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  eyeText: { fontSize: 18 },
   button: {
     backgroundColor: '#E53935',
     borderRadius: 12,
