@@ -41,6 +41,7 @@ function reducer(state: HealthState, action: Action): HealthState {
 
 interface HealthContextValue extends HealthState {
   refresh: () => Promise<void>;
+  refreshDeviceStatus: () => Promise<void>;
   connectSamsungHealth: () => Promise<boolean>;
 }
 
@@ -114,7 +115,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <HealthContext.Provider value={{ ...state, refresh, connectSamsungHealth }}>
+    <HealthContext.Provider value={{ ...state, refresh, refreshDeviceStatus, connectSamsungHealth }}>
       {children}
     </HealthContext.Provider>
   );
