@@ -2,22 +2,15 @@ import * as SecureStore from 'expo-secure-store';
 import { WorkoutSession, HeartRateSample } from '../types/health';
 
 const IFIT_API_BASE = 'https://api.ifit.com/v1';
-
-// Known iFit OAuth endpoints to try in order
-const TOKEN_URLS = [
-  'https://www.ifit.com/api/v1/oauth/token',
-  'https://www.ifit.com/api/v1/oauth2/token',
-  'https://api.ifit.com/v1/oauth/token',
-];
-
-// iFit mobile app client credentials (from community reverse engineering)
-const IFIT_CLIENT_ID = 'ig-public-key';
-const IFIT_CLIENT_SECRET = 'igPublicSecret';
+const IFIT_TOKEN_URL = 'https://api.ifit.com/oauth/token';
+const IFIT_LOGIN_URL = 'https://www.ifit.com/web-api/login';
+const IFIT_SETTINGS_URL = 'https://www.ifit.com/settings/apps';
 
 const KEY_ACCESS = 'ifit_access_token';
 const KEY_REFRESH = 'ifit_refresh_token';
 const KEY_EXPIRY = 'ifit_token_expiry';
-const KEY_TOKEN_URL = 'ifit_working_token_url';
+const KEY_CLIENT_ID = 'ifit_client_id';
+const KEY_CLIENT_SECRET = 'ifit_client_secret';
 
 export interface LoginResult {
   success: boolean;
@@ -25,45 +18,88 @@ export interface LoginResult {
 }
 
 export async function loginWithiFit(email: string, password: string): Promise<LoginResult> {
-  // Try each endpoint until one works
-  for (const url of TOKEN_URLS) {
-    const resp = await fetch(url, {
+  try {
+    // Step 1: Log in to iFit web to get a session cookie
+    const loginResp = await fetch(IFIT_LOGIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!loginResp.ok) {
+      let msg = `Login failed (HTTP ${loginResp.status})`;
+      try { const b = await loginResp.json(); msg = b.message ?? b.error ?? msg; } catch {}
+      return { success: false, error: msg };
+    }
+
+    // Extract session cookie to authenticate the settings page request
+    const cookie = loginResp.headers.get('set-cookie') ?? '';
+
+    // Step 2: Fetch the settings page to extract dynamic client credentials
+    const settingsResp = await fetch(IFIT_SETTINGS_URL, {
+      headers: { Cookie: cookie, Accept: 'text/html' },
+    });
+
+    if (!settingsResp.ok) {
+      return { success: false, error: `Could not load iFit settings page (HTTP ${settingsResp.status})` };
+    }
+
+    const html = await settingsResp.text();
+
+    // Extract client_id and client_secret embedded in the page JS
+    const clientIdMatch = html.match(/'clientId'\s*:\s*'([^']+)'/) ??
+                          html.match(/"clientId"\s*:\s*"([^"]+)"/);
+    const clientSecretMatch = html.match(/'clientSecret'\s*:\s*'([^']+)'/) ??
+                              html.match(/"clientSecret"\s*:\s*"([^"]+)"/);
+
+    if (!clientIdMatch || !clientSecretMatch) {
+      return { success: false, error: 'Could not extract iFit API credentials from settings page. iFit may have changed their web interface.' };
+    }
+
+    const clientId = clientIdMatch[1];
+    const clientSecret = clientSecretMatch[1];
+
+    // Step 3: Exchange username/password for OAuth token using extracted credentials
+    const tokenResp = await fetch(IFIT_TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'password',
         username: email,
         password,
-        client_id: IFIT_CLIENT_ID,
-        client_secret: IFIT_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
       }).toString(),
     });
 
-    let body: any = {};
-    try { body = await resp.json(); } catch {}
+    let tokenBody: any = {};
+    try { tokenBody = await tokenResp.json(); } catch {}
 
-    if (resp.ok && body.access_token) {
-      await storeTokens(body);
-      await SecureStore.setItemAsync(KEY_TOKEN_URL, url);
-      return { success: true };
+    if (!tokenResp.ok || !tokenBody.access_token) {
+      const msg = tokenBody.error_description ?? tokenBody.error ?? tokenBody.message ?? `Token request failed (HTTP ${tokenResp.status})`;
+      return { success: false, error: msg };
     }
 
-    // If it's a 401/400 with an error body, that endpoint is reachable — wrong creds
-    if (resp.status === 400 || resp.status === 401) {
-      const errorDetail = body.error_description ?? body.error ?? body.message ?? `HTTP ${resp.status}`;
-      return { success: false, error: `Auth failed (${url}): ${errorDetail}` };
-    }
-    // 404/5xx — try next URL
+    await Promise.all([
+      storeTokens(tokenBody),
+      SecureStore.setItemAsync(KEY_CLIENT_ID, clientId),
+      SecureStore.setItemAsync(KEY_CLIENT_SECRET, clientSecret),
+    ]);
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? 'Unexpected error during iFit login' };
   }
-
-  return { success: false, error: 'Could not reach any iFit API endpoint. Check your internet connection.' };
 }
 
 export async function logoutFromiFit(): Promise<void> {
-  await SecureStore.deleteItemAsync(KEY_ACCESS);
-  await SecureStore.deleteItemAsync(KEY_REFRESH);
-  await SecureStore.deleteItemAsync(KEY_EXPIRY);
-  await SecureStore.deleteItemAsync(KEY_TOKEN_URL);
+  await Promise.all([
+    SecureStore.deleteItemAsync(KEY_ACCESS),
+    SecureStore.deleteItemAsync(KEY_REFRESH),
+    SecureStore.deleteItemAsync(KEY_EXPIRY),
+    SecureStore.deleteItemAsync(KEY_CLIENT_ID),
+    SecureStore.deleteItemAsync(KEY_CLIENT_SECRET),
+  ]);
 }
 
 export async function isiFitConnected(): Promise<boolean> {
@@ -80,20 +116,21 @@ export async function getStoredToken(): Promise<string | null> {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
-  const [refreshToken, tokenUrl] = await Promise.all([
+  const [refreshToken, clientId, clientSecret] = await Promise.all([
     SecureStore.getItemAsync(KEY_REFRESH),
-    SecureStore.getItemAsync(KEY_TOKEN_URL),
+    SecureStore.getItemAsync(KEY_CLIENT_ID),
+    SecureStore.getItemAsync(KEY_CLIENT_SECRET),
   ]);
-  if (!refreshToken || !tokenUrl) return null;
+  if (!refreshToken || !clientId || !clientSecret) return null;
 
-  const resp = await fetch(tokenUrl, {
+  const resp = await fetch(IFIT_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: IFIT_CLIENT_ID,
-      client_secret: IFIT_CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
     }).toString(),
   });
 
@@ -113,32 +150,42 @@ async function iFitGet<T>(path: string): Promise<T> {
   const token = await getStoredToken();
   if (!token) throw new Error('Not authenticated with iFit');
   const resp = await fetch(`${IFIT_API_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
   });
   if (!resp.ok) throw new Error(`iFit API error: ${resp.status}`);
   return resp.json();
 }
 
 export async function fetchiFitWorkouts(limit = 20): Promise<WorkoutSession[]> {
-  const data = await iFitGet<{ items: any[] }>(`/workouts?limit=${limit}`);
-  return (data.items ?? []).map((w) => ({
-    id: w.id,
-    startTime: new Date(w.created_at),
+  const data = await iFitGet<{ items?: any[]; results?: any[] }>(
+    `/activity_logs/?platform=android&perPage=${limit}`
+  );
+  const items = data.items ?? data.results ?? [];
+  return items.map((w: any) => ({
+    id: w.id ?? String(Math.random()),
+    startTime: new Date(w.created_at ?? w.startTime ?? Date.now()),
     endTime: w.completed_at ? new Date(w.completed_at) : undefined,
-    type: w.workout_type?.toLowerCase().includes('treadmill') ? 'treadmill' : 'other',
-    distanceMeters: w.distance_meters,
-    avgHeartRate: w.avg_heart_rate,
-    maxHeartRate: w.max_heart_rate,
-    calories: w.calories,
+    type: (w.workout_type ?? w.type ?? '').toLowerCase().includes('treadmill') ? 'treadmill' : 'other',
+    distanceMeters: w.distance_meters ?? w.distance,
+    avgHeartRate: w.avg_heart_rate ?? w.averageHeartRate,
+    maxHeartRate: w.max_heart_rate ?? w.maxHeartRate,
+    calories: w.calories ?? w.caloriesBurned,
     source: 'ifit' as const,
   }));
 }
 
 export async function fetchiFitHeartRateForWorkout(workoutId: string): Promise<HeartRateSample[]> {
-  const data = await iFitGet<{ items: any[] }>(`/workouts/${workoutId}/heart_rate`);
-  return (data.items ?? []).map((s) => ({
-    timestamp: new Date(s.timestamp),
-    bpm: s.heart_rate,
-    source: 'ifit' as const,
-  }));
+  try {
+    const data = await iFitGet<{ items?: any[]; results?: any[] }>(
+      `/activity_logs/${workoutId}/heart_rate`
+    );
+    const items = data.items ?? data.results ?? [];
+    return items.map((s: any) => ({
+      timestamp: new Date(s.timestamp ?? s.time ?? Date.now()),
+      bpm: s.heart_rate ?? s.heartRate ?? s.bpm,
+      source: 'ifit' as const,
+    }));
+  } catch {
+    return [];
+  }
 }
