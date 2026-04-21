@@ -45,7 +45,18 @@
       "expo-web-browser",
       "expo-secure-store",
       "expo-dev-client",
-      "react-native-health-connect"
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25",
+            "minSdkVersion": 26,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

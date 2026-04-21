@@ -14,7 +14,8 @@
       "Bash(eas build:view *)",
       "WebFetch(domain:expo.dev)",
       "WebFetch(domain:job-logs.eascdn.net)",
-      "Bash(eas build *)"
+      "Bash(eas build *)",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\('peerDeps:', json.dumps\\(p.get\\('peerDependencies',{}\\), indent=2\\)\\); print\\('deps:', json.dumps\\(p.get\\('dependencies',{}\\), indent=2\\)\\)\")"
     ]
   }
 }
