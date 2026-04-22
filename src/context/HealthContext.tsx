@@ -105,10 +105,10 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
       const granted = await requestHealthConnectPermissions();
       await refreshDeviceStatus();
       if (granted) refresh();
-      return true;
+      return granted;
     } catch {
       await openHealthConnectSettings().catch(() => {});
-      return true;
+      return false;
     }
   }, [refresh, refreshDeviceStatus]);
 

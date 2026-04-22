@@ -22,6 +22,7 @@ export default function DevicesScreen() {
   const waitingForReturn = useRef(false);
 
   const samsungConnected = devices.find((d) => d.id === 'samsung_health')?.connected ?? false;
+  const isIOS = Platform.OS === 'ios';
 
   // When user returns from Health Connect, re-check permissions and refresh data.
   useEffect(() => {
@@ -41,14 +42,22 @@ export default function DevicesScreen() {
     const ok = await connectSamsungHealth();
     setConnecting(false);
     if (!ok) {
-      Alert.alert(
-        'Health Connect Required',
-        'Health Connect is not available or needs to be updated. Install or update it from the Play Store, then try again.',
-        [
-          { text: 'Open Play Store', onPress: () => Linking.openURL('market://details?id=com.google.android.apps.healthdata') },
-          { text: 'OK' },
-        ],
-      );
+      if (isIOS) {
+        Alert.alert(
+          'Apple Health Unavailable',
+          'Apple Health sync is not available in this build yet.',
+          [{ text: 'OK' }],
+        );
+      } else {
+        Alert.alert(
+          'Could Not Connect Health Connect',
+          'Open Health Connect and grant MyHealth permissions. If it still fails, update Health Connect and use an EAS/dev build (not Expo Go).',
+          [
+            { text: 'Open Play Store', onPress: () => Linking.openURL('market://details?id=com.google.android.apps.healthdata') },
+            { text: 'OK' },
+          ],
+        );
+      }
     } else {
       // User is now in Health Connect — detect when they return.
       waitingForReturn.current = true;
@@ -68,10 +77,10 @@ export default function DevicesScreen() {
         <View style={styles.separator} />
 
         <Text style={styles.sectionTitle}>
-          {Platform.OS === 'ios' ? 'Apple Health' : 'Samsung Health'}
+          {isIOS ? 'Apple Health' : 'Samsung Health'}
         </Text>
         <Text style={styles.description}>
-          {Platform.OS === 'ios'
+          {isIOS
             ? 'Grant access to Apple HealthKit to sync heart rate, steps, distance, and workouts.'
             : 'Grant access to Android Health Connect to sync steps, heart rate, calories, and blood glucose from your Samsung devices.'}
         </Text>
@@ -79,7 +88,7 @@ export default function DevicesScreen() {
         {samsungConnected && (
           <View style={styles.connectedRow}>
             <View style={styles.connectedDot} />
-            <Text style={styles.connectedText}>Samsung Health Connected</Text>
+            <Text style={styles.connectedText}>{isIOS ? 'Apple Health Connected' : 'Samsung Health Connected'}</Text>
           </View>
         )}
 
@@ -92,7 +101,7 @@ export default function DevicesScreen() {
             <ActivityIndicator color={samsungConnected ? '#666' : '#fff'} />
           ) : (
             <Text style={samsungConnected ? styles.buttonSecondaryText : styles.buttonText}>
-              {samsungConnected ? 'Re-grant Permissions' : 'Connect Samsung Health'}
+              {samsungConnected ? 'Re-grant Permissions' : isIOS ? 'Connect Apple Health' : 'Connect Samsung Health'}
             </Text>
           )}
         </TouchableOpacity>
@@ -100,26 +109,29 @@ export default function DevicesScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>No data showing?</Text>
           <Text style={styles.infoText}>
-            1. Tap <Text style={{ fontWeight: '700' }}>Connect Samsung Health</Text> above — a Health Connect dialog will appear{'\n'}
-            2. Grant all requested permissions{'\n'}
-            3. Also enable Blood Glucose in Samsung Health → ☰ → Settings → Health Connect{'\n'}
-            4. Return to the Dashboard — data loads automatically
+            {isIOS
+              ? `1. Tap Connect Apple Health above\n2. Grant requested Health permissions\n3. Confirm MyHealth is enabled in iOS Settings → Health → Data Access & Devices\n4. Return to the Dashboard — data loads automatically`
+              : `1. Tap Connect Samsung Health above — a Health Connect dialog will appear\n2. Grant all requested permissions\n3. Also enable Blood Glucose in Samsung Health → ☰ → Settings → Health Connect\n4. Return to the Dashboard — data loads automatically`}
           </Text>
         </View>
 
-        <View style={styles.separator} />
+        {!isIOS && (
+          <>
+            <View style={styles.separator} />
 
-        <Text style={styles.sectionTitle}>Dexcom G7 (Blood Glucose)</Text>
-        <Text style={styles.description}>
-          Your Dexcom G7 readings flow in automatically — no separate login needed.
-        </Text>
-        <View style={[styles.infoBox, { backgroundColor: '#F3F9F3' }]}>
-          <Text style={[styles.infoTitle, { color: '#388E3C' }]}>How it works</Text>
-          <Text style={styles.infoText}>
-            Dexcom app → Samsung Health → Health Connect → MyHealth{'\n\n'}
-            To enable: Samsung Health → ☰ → Settings → Connected services → Health Connect → enable <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>
-          </Text>
-        </View>
+            <Text style={styles.sectionTitle}>Dexcom G7 (Blood Glucose)</Text>
+            <Text style={styles.description}>
+              Your Dexcom G7 readings flow in automatically — no separate login needed.
+            </Text>
+            <View style={[styles.infoBox, { backgroundColor: '#F3F9F3' }]}>
+              <Text style={[styles.infoTitle, { color: '#388E3C' }]}>How it works</Text>
+              <Text style={styles.infoText}>
+                Dexcom app → Samsung Health → Health Connect → MyHealth{'\n\n'}
+                To enable: Samsung Health → ☰ → Settings → Connected services → Health Connect → enable <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>
+              </Text>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

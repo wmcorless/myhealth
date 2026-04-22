@@ -4,6 +4,8 @@ import {
   readRecords,
   getSdkStatus,
   getGrantedPermissions,
+  openHealthConnectSettings as openHealthConnectNativeSettings,
+  openHealthConnectDataManagement,
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
 import { Linking, Platform } from 'react-native';
@@ -68,15 +70,21 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
 
 /** Opens Health Connect settings for manual permission management. */
 export async function openHealthConnectSettings(): Promise<void> {
-  const deepLink = `healthconnect://androidx.health.ACTION_MANAGE_HEALTH_PERMISSIONS?package_name=com.wmcorless.myhealth`;
-  const canOpen = await Linking.canOpenURL(deepLink).catch(() => false);
-  if (canOpen) {
-    await Linking.openURL(deepLink);
-  } else {
-    await Linking.openURL(`market://details?id=${HC_PACKAGE}`).catch(() =>
-      Linking.openURL(`https://play.google.com/store/apps/details?id=${HC_PACKAGE}`)
-    );
+  try {
+    openHealthConnectDataManagement();
+    return;
+  } catch {
+    // fallback below
   }
+  try {
+    openHealthConnectNativeSettings();
+    return;
+  } catch {
+    // fallback below
+  }
+  await Linking.openURL(`market://details?id=${HC_PACKAGE}`).catch(() =>
+    Linking.openURL(`https://play.google.com/store/apps/details?id=${HC_PACKAGE}`)
+  );
 }
 
 export async function fetchTodayHeartRate(): Promise<HeartRateSample[]> {
@@ -161,12 +169,17 @@ export async function fetchTodayBloodGlucose(): Promise<BloodGlucoseSample[]> {
         endTime: new Date().toISOString(),
       },
     });
-    return (records as any[]).map((r) => ({
-      timestamp: new Date(r.time),
-      mgPerDl: Math.round(r.level?.inMilligramsPerDeciliter ?? r.level?.inMillimolesPerLiter * 18.016 ?? 0),
-      relationToMeal: MEAL_MAP[r.relationToMeal] ?? 'general',
-      source: 'samsung' as const,
-    }));
+    return (records as any[]).map((r) => {
+      const mgPerDl =
+        r.level?.inMilligramsPerDeciliter ??
+        (r.level?.inMillimolesPerLiter !== undefined ? r.level.inMillimolesPerLiter * 18.016 : 0);
+      return {
+        timestamp: new Date(r.time),
+        mgPerDl: Math.round(mgPerDl),
+        relationToMeal: MEAL_MAP[r.relationToMeal] ?? 'general',
+        source: 'samsung' as const,
+      };
+    });
   } catch {
     return [];
   }
