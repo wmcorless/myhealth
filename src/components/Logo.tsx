@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Circle, Path, Text, TSpan } from 'react-native-svg';
+import Svg, { Circle, Path, Text } from 'react-native-svg';
 
 interface Props {
   size?: number;
@@ -16,7 +16,7 @@ export default function Logo({ size = 48 }: Props) {
       <Circle cx="60" cy="60" r="55" fill="#E53935" />
       {/* White heart */}
       <Path
-        d="M60 85 C28 62, 10 46, 10 30 C10 16, 22 6, 35 6 C44 6, 52 11, 60 20 C68 11, 76 6, 85 6 C98 6, 110 16, 110 30 C110 46, 92 62, 60 85 Z"
+        d="M60 84 C42 70, 30 58, 30 44 C30 34, 38 26, 48 26 C54 26, 58 29, 60 33 C62 29, 66 26, 72 26 C82 26, 90 34, 90 44 C90 58, 78 70, 60 84 Z"
         fill="#FFFFFF"
       />
       {/* "my" in red */}

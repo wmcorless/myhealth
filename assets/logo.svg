@@ -2,7 +2,7 @@
   <!-- Red circle -->
   <circle cx="60" cy="60" r="55" fill="#E53935"/>
   <!-- White heart -->
-  <path d="M60 85 C28 62, 10 46, 10 30 C10 16, 22 6, 35 6 C44 6, 52 11, 60 20 C68 11, 76 6, 85 6 C98 6, 110 16, 110 30 C110 46, 92 62, 60 85 Z" fill="#FFFFFF"/>
+  <path d="M60 84 C42 70, 30 58, 30 44 C30 34, 38 26, 48 26 C54 26, 58 29, 60 33 C62 29, 66 26, 72 26 C82 26, 90 34, 90 44 C90 58, 78 70, 60 84 Z" fill="#FFFFFF"/>
   <!-- App name -->
   <text x="130" y="52" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="36" font-weight="700" fill="#E53935" letter-spacing="-0.5">my</text>
   <text x="130" y="88" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="36" font-weight="700" fill="#222222" letter-spacing="-0.5">health</text>
