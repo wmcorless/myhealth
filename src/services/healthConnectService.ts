@@ -5,14 +5,12 @@ import {
   getSdkStatus,
   getGrantedPermissions,
   openHealthConnectSettings as openHealthConnectNativeSettings,
-  openHealthConnectDataManagement,
   SdkAvailabilityStatus,
 } from 'react-native-health-connect';
 import { Linking, Platform } from 'react-native';
 import { BloodGlucoseSample, DailySummary, HeartRateSample, WorkoutSession } from '../types/health';
 
 const HC_PACKAGE = 'com.google.android.apps.healthdata';
-const APP_PACKAGE = 'com.wmcorless.myhealth';
 
 export async function isHealthConnectAvailable(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
@@ -64,6 +62,8 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
   const ready = await initHealthConnect();
   if (!ready) return false;
   try {
+    const alreadyGranted = await getGrantedPermissions();
+    if (alreadyGranted.length > 0) return true;
     const granted = await requestPermission([...HC_PERMISSIONS]);
     return granted.length > 0;
   } catch {
@@ -74,12 +74,6 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
 
 /** Opens Health Connect settings for manual permission management. */
 export async function openHealthConnectSettings(): Promise<void> {
-  try {
-    openHealthConnectDataManagement(APP_PACKAGE);
-    return;
-  } catch {
-    // fallback below
-  }
   try {
     openHealthConnectNativeSettings();
     return;
