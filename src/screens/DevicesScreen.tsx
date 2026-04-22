@@ -9,11 +9,11 @@ import {
   Alert,
   Platform,
   ScrollView,
-  Linking,
   AppState,
 } from 'react-native';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import { useHealth } from '../context/HealthContext';
+import { openHealthConnectInstallPage, openHealthConnectSettings } from '../services/healthConnectService';
 
 export default function DevicesScreen() {
   const { devices, connectSamsungHealth, refreshDeviceStatus, refresh } = useHealth();
@@ -51,9 +51,10 @@ export default function DevicesScreen() {
       } else {
         Alert.alert(
           'Could Not Connect Health Connect',
-          'Open Health Connect and grant MyHealth permissions. If it still fails, update Health Connect and use an EAS/dev build (not Expo Go).',
+          'Open Health Connect and grant MyHealth permissions. If Health Connect is missing or outdated, update it from the Play Store. Also use an EAS/dev build (not Expo Go).',
           [
-            { text: 'Open Play Store', onPress: () => Linking.openURL('market://details?id=com.google.android.apps.healthdata') },
+            { text: 'Open Health Connect', onPress: () => openHealthConnectSettings().catch(() => {}) },
+            { text: 'Open Play Store', onPress: () => openHealthConnectInstallPage().catch(() => {}) },
             { text: 'OK' },
           ],
         );

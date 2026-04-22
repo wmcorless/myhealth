@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import { BloodGlucoseSample, DailySummary, DeviceStatus, HeartRateSample } from '../types/health';
 import { getTodaySummary, getTodayHeartRate, getTodayBloodGlucose } from '../services/healthAggregator';
-import { isHealthConnectAvailable, hasHealthConnectPermissions, initHealthConnect, requestHealthConnectPermissions, openHealthConnectSettings } from '../services/healthConnectService';
+import { isHealthConnectAvailable, hasHealthConnectPermissions, initHealthConnect, requestHealthConnectPermissions } from '../services/healthConnectService';
 import { initDatabase, saveDailySummary, saveHeartRateSamples, saveBloodGlucoseSamples, saveWorkouts } from '../services/database';
 import { Platform } from 'react-native';
 
@@ -98,10 +98,7 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   const connectSamsungHealth = useCallback(async () => {
     try {
       const available = await isHealthConnectAvailable();
-      if (!available) {
-        await openHealthConnectSettings().catch(() => {});
-        return false;
-      }
+      if (!available) return false;
       await initHealthConnect();
       // requestPermission() shows the native HC dialog AND registers the app
       // so it appears in HC's App permissions list.
@@ -110,7 +107,6 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
       if (granted) refresh();
       return granted;
     } catch {
-      await openHealthConnectSettings().catch(() => {});
       return false;
     }
   }, [refresh, refreshDeviceStatus]);

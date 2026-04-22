@@ -12,6 +12,7 @@ import { Linking, Platform } from 'react-native';
 import { BloodGlucoseSample, DailySummary, HeartRateSample, WorkoutSession } from '../types/health';
 
 const HC_PACKAGE = 'com.google.android.apps.healthdata';
+const APP_PACKAGE = 'com.wmcorless.myhealth';
 
 export async function isHealthConnectAvailable(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
@@ -61,16 +62,12 @@ const HC_PERMISSIONS = [
  */
 export async function requestHealthConnectPermissions(): Promise<boolean> {
   const ready = await initHealthConnect();
-  if (!ready) {
-    await openHealthConnectSettings();
-    return false;
-  }
+  if (!ready) return false;
   try {
     const granted = await requestPermission([...HC_PERMISSIONS]);
     return granted.length > 0;
   } catch {
-    // Native dialog failed — open Health Connect manually as fallback
-    await openHealthConnectSettings();
+    // Native dialog failed.
     return false;
   }
 }
@@ -78,7 +75,7 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
 /** Opens Health Connect settings for manual permission management. */
 export async function openHealthConnectSettings(): Promise<void> {
   try {
-    openHealthConnectDataManagement(HC_PACKAGE);
+    openHealthConnectDataManagement(APP_PACKAGE);
     return;
   } catch {
     // fallback below
@@ -89,6 +86,9 @@ export async function openHealthConnectSettings(): Promise<void> {
   } catch {
     // fallback below
   }
+}
+
+export async function openHealthConnectInstallPage(): Promise<void> {
   await Linking.openURL(`market://details?id=${HC_PACKAGE}`).catch(() =>
     Linking.openURL(`https://play.google.com/store/apps/details?id=${HC_PACKAGE}`)
   );
