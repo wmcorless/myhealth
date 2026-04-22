@@ -92,7 +92,7 @@ export default function DevicesScreen() {
             <ActivityIndicator color={samsungConnected ? '#666' : '#fff'} />
           ) : (
             <Text style={samsungConnected ? styles.buttonSecondaryText : styles.buttonText}>
-              {samsungConnected ? 'Re-open Health Connect' : 'Open Health Connect'}
+              {samsungConnected ? 'Re-grant Permissions' : 'Connect Samsung Health'}
             </Text>
           )}
         </TouchableOpacity>
@@ -100,10 +100,10 @@ export default function DevicesScreen() {
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>No data showing?</Text>
           <Text style={styles.infoText}>
-            1. Tap <Text style={{ fontWeight: '700' }}>Open Health Connect</Text> above{'\n'}
-            2. In Health Connect → App permissions → MyHealth → grant all permissions{'\n'}
-            3. Also: Samsung Health → ☰ → Settings → Health Connect → enable <Text style={{ fontWeight: '700' }}>Blood Glucose</Text>{'\n'}
-            4. Return to MyHealth — data refreshes automatically
+            1. Tap <Text style={{ fontWeight: '700' }}>Connect Samsung Health</Text> above — a Health Connect dialog will appear{'\n'}
+            2. Grant all requested permissions{'\n'}
+            3. Also enable Blood Glucose in Samsung Health → ☰ → Settings → Health Connect{'\n'}
+            4. Return to the Dashboard — data loads automatically
           </Text>
         </View>
 

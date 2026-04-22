@@ -1,5 +1,6 @@
 import {
   initialize,
+  requestPermission,
   readRecords,
   getSdkStatus,
   getGrantedPermissions,
@@ -39,9 +40,34 @@ export async function initHealthConnect(): Promise<boolean> {
   }
 }
 
-/** Opens Health Connect so the user can grant permissions manually. */
-export async function openHealthConnectPermissions(): Promise<void> {
-  // Try the deep-link to MyHealth's permission page first; fall back to app home.
+const HC_PERMISSIONS = [
+  { accessType: 'read', recordType: 'HeartRate' },
+  { accessType: 'read', recordType: 'Steps' },
+  { accessType: 'read', recordType: 'Distance' },
+  { accessType: 'read', recordType: 'ExerciseSession' },
+  { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
+  { accessType: 'read', recordType: 'RestingHeartRate' },
+  { accessType: 'read', recordType: 'BloodGlucose' },
+] as const;
+
+/**
+ * Requests Health Connect permissions via the native dialog.
+ * Returns true if at least one permission was granted.
+ * Falls back to Linking if the native dialog cannot be launched.
+ */
+export async function requestHealthConnectPermissions(): Promise<boolean> {
+  try {
+    const granted = await requestPermission([...HC_PERMISSIONS]);
+    return granted.length > 0;
+  } catch {
+    // Native dialog failed — open Health Connect manually as fallback
+    await openHealthConnectSettings();
+    return false;
+  }
+}
+
+/** Opens Health Connect settings for manual permission management. */
+export async function openHealthConnectSettings(): Promise<void> {
   const deepLink = `healthconnect://androidx.health.ACTION_MANAGE_HEALTH_PERMISSIONS?package_name=com.wmcorless.myhealth`;
   const canOpen = await Linking.canOpenURL(deepLink).catch(() => false);
   if (canOpen) {
