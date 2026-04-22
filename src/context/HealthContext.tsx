@@ -98,7 +98,10 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
   const connectSamsungHealth = useCallback(async () => {
     try {
       const available = await isHealthConnectAvailable();
-      if (!available) return false;
+      if (!available) {
+        await openHealthConnectSettings().catch(() => {});
+        return false;
+      }
       await initHealthConnect();
       // requestPermission() shows the native HC dialog AND registers the app
       // so it appears in HC's App permissions list.

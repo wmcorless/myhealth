@@ -16,7 +16,7 @@ const HC_PACKAGE = 'com.google.android.apps.healthdata';
 export async function isHealthConnectAvailable(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
   try {
-    const status = await getSdkStatus();
+    const status = await getSdkStatus(HC_PACKAGE);
     return status === SdkAvailabilityStatus.SDK_AVAILABLE;
   } catch {
     return false;
@@ -25,7 +25,8 @@ export async function isHealthConnectAvailable(): Promise<boolean> {
 
 export async function hasHealthConnectPermissions(): Promise<boolean> {
   try {
-    await initialize();
+    const ready = await initHealthConnect();
+    if (!ready) return false;
     const granted = await getGrantedPermissions();
     return granted.some((p) => p.recordType === 'Steps' || p.recordType === 'HeartRate');
   } catch {
@@ -35,8 +36,9 @@ export async function hasHealthConnectPermissions(): Promise<boolean> {
 
 export async function initHealthConnect(): Promise<boolean> {
   try {
-    if (!(await isHealthConnectAvailable())) return false;
-    return initialize();
+    const status = await getSdkStatus(HC_PACKAGE);
+    if (status !== SdkAvailabilityStatus.SDK_AVAILABLE) return false;
+    return initialize(HC_PACKAGE);
   } catch {
     return false;
   }
@@ -58,6 +60,11 @@ const HC_PERMISSIONS = [
  * Falls back to Linking if the native dialog cannot be launched.
  */
 export async function requestHealthConnectPermissions(): Promise<boolean> {
+  const ready = await initHealthConnect();
+  if (!ready) {
+    await openHealthConnectSettings();
+    return false;
+  }
   try {
     const granted = await requestPermission([...HC_PERMISSIONS]);
     return granted.length > 0;
@@ -71,7 +78,7 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
 /** Opens Health Connect settings for manual permission management. */
 export async function openHealthConnectSettings(): Promise<void> {
   try {
-    openHealthConnectDataManagement();
+    openHealthConnectDataManagement(HC_PACKAGE);
     return;
   } catch {
     // fallback below
@@ -89,7 +96,8 @@ export async function openHealthConnectSettings(): Promise<void> {
 
 export async function fetchTodayHeartRate(): Promise<HeartRateSample[]> {
   try {
-    await initialize();
+    const ready = await initHealthConnect();
+    if (!ready) return [];
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const { records } = await readRecords('HeartRate', {
@@ -113,7 +121,8 @@ export async function fetchTodayHeartRate(): Promise<HeartRateSample[]> {
 
 export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
   try {
-    await initialize();
+    const ready = await initHealthConnect();
+    if (!ready) return {};
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const filter = {
@@ -159,7 +168,8 @@ const MEAL_MAP: Record<number, BloodGlucoseSample['relationToMeal']> = {
 
 export async function fetchTodayBloodGlucose(): Promise<BloodGlucoseSample[]> {
   try {
-    await initialize();
+    const ready = await initHealthConnect();
+    if (!ready) return [];
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const { records } = await readRecords('BloodGlucose', {

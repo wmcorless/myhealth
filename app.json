@@ -48,7 +48,6 @@
       "expo-web-browser",
       "expo-secure-store",
       "expo-dev-client",
-      "react-native-health-connect",
       [
         "react-native-health-connect",
         {
