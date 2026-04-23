@@ -58,8 +58,10 @@ const HC_OPTIONAL_PERMISSIONS = [
 
 /**
  * Requests Health Connect permissions via the native dialog.
- * Returns true if at least one permission was granted.
- * Falls back to Linking if the native dialog cannot be launched.
+ * All permissions are requested in a single dialog to avoid showing
+ * two separate HC prompts.
+ * Returns true if at least one core permission was granted.
+ * Falls back to false if the native dialog cannot be launched.
  */
 export async function requestHealthConnectPermissions(): Promise<boolean> {
   const ready = await initHealthConnect();
@@ -68,15 +70,11 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
     const alreadyGranted = await getGrantedPermissions();
     const hasCore = alreadyGranted.some((p) => p.recordType === 'HeartRate' || p.recordType === 'Steps');
     if (hasCore) return true;
-    const grantedCore = await requestPermission([...HC_CORE_PERMISSIONS]);
-    if (!grantedCore.some((p) => p.recordType === 'HeartRate' || p.recordType === 'Steps')) {
-      return false;
-    }
-    // Best-effort: optional permissions shouldn't block core connection.
-    await requestPermission([...HC_OPTIONAL_PERMISSIONS]).catch(() => {});
-    return true;
+    // Request all permissions in one dialog
+    const allPermissions = [...HC_CORE_PERMISSIONS, ...HC_OPTIONAL_PERMISSIONS];
+    const granted = await requestPermission([...allPermissions]);
+    return granted.some((p) => p.recordType === 'HeartRate' || p.recordType === 'Steps');
   } catch {
-    // Native dialog failed.
     return false;
   }
 }
