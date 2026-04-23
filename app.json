@@ -45,6 +45,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withHealthConnectActivity",
       "expo-web-browser",
       "expo-secure-store",
       "expo-dev-client",
