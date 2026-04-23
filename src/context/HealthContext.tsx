@@ -113,8 +113,17 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     initDatabase()
-      .then(() => refreshDeviceStatus())
-      .then(() => refresh())
+      .then(async () => {
+        await refreshDeviceStatus();
+        if (Platform.OS === 'android') {
+          const connected = await hasHealthConnectPermissions().catch(() => false);
+          if (!connected) {
+            await requestHealthConnectPermissions().catch(() => {});
+            await refreshDeviceStatus();
+          }
+        }
+        await refresh();
+      })
       .catch(() => {});
   }, []);
 

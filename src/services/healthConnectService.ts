@@ -43,9 +43,12 @@ export async function initHealthConnect(): Promise<boolean> {
   }
 }
 
-const HC_PERMISSIONS = [
+const HC_CORE_PERMISSIONS = [
   { accessType: 'read', recordType: 'HeartRate' },
   { accessType: 'read', recordType: 'Steps' },
+ ] as const;
+
+const HC_OPTIONAL_PERMISSIONS = [
   { accessType: 'read', recordType: 'Distance' },
   { accessType: 'read', recordType: 'ExerciseSession' },
   { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
@@ -63,9 +66,15 @@ export async function requestHealthConnectPermissions(): Promise<boolean> {
   if (!ready) return false;
   try {
     const alreadyGranted = await getGrantedPermissions();
-    if (alreadyGranted.length > 0) return true;
-    const granted = await requestPermission([...HC_PERMISSIONS]);
-    return granted.length > 0;
+    const hasCore = alreadyGranted.some((p) => p.recordType === 'HeartRate' || p.recordType === 'Steps');
+    if (hasCore) return true;
+    const grantedCore = await requestPermission([...HC_CORE_PERMISSIONS]);
+    if (!grantedCore.some((p) => p.recordType === 'HeartRate' || p.recordType === 'Steps')) {
+      return false;
+    }
+    // Best-effort: optional permissions shouldn't block core connection.
+    await requestPermission([...HC_OPTIONAL_PERMISSIONS]).catch(() => {});
+    return true;
   } catch {
     // Native dialog failed.
     return false;
