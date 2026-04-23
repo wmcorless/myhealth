@@ -229,7 +229,7 @@ function bestValueFromSources(records: any[], getValue: (r: any) => number): num
   return best;
 }
 
-: Record<number, BloodGlucoseSample['relationToMeal']> = {
+const MEAL_MAP: Record<number, BloodGlucoseSample['relationToMeal']> = {
   1: 'fasting',
   2: 'before_meal',
   3: 'after_meal',
