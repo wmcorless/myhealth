@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import MetricCard from '../components/MetricCard';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import Logo from '../components/Logo';
@@ -27,6 +27,7 @@ export default function DashboardScreen() {
   const { summary, devices, loading, refresh } = useHealth();
   const { preferences } = usePreferences();
   const { liveHR, status: watchStatus } = useWatchHR();
+  const navigation = useNavigation<any>();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useFocusEffect(
@@ -70,7 +71,7 @@ export default function DashboardScreen() {
         )}
 
         <View style={styles.row}>
-          <MetricCard label={isLiveHR ? 'Heart Rate 🔴' : 'Heart Rate'} value={fmt(latestHR)} unit="bpm" color="#E53935" />
+          <MetricCard label={isLiveHR ? 'Heart Rate 🔴' : 'Heart Rate'} value={fmt(latestHR)} unit="bpm" color="#E53935" onPress={() => navigation.navigate('Heart Rate')} />
           <MetricCard label="Steps" value={fmt(summary?.steps)} unit="steps" color="#1E88E5" />
         </View>
         <View style={styles.row}>
@@ -82,6 +83,7 @@ export default function DashboardScreen() {
             label="Workouts"
             value={summary?.workouts.length ?? '—'}
             color="#8E24AA"
+            onPress={() => navigation.navigate('Workouts')}
           />
           <MetricCard
             label="Resting HR"

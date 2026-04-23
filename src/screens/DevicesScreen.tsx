@@ -10,12 +10,23 @@ import {
   Platform,
   ScrollView,
   AppState,
+  ViewStyle,
 } from 'react-native';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import { useHealth } from '../context/HealthContext';
 import { useWatchHR } from '../context/WatchHRContext';
 import { useTreadmill } from '../context/TreadmillContext';
 import { openHealthConnectInstallPage, openHealthConnectSettings } from '../services/healthConnectService';
+
+function bleDotStyle(connected: boolean): ViewStyle {
+  return {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: connected ? '#43A047' : '#ccc',
+    marginRight: 10,
+  };
+}
 
 export default function DevicesScreen() {
   const { devices, connectSamsungHealth, refreshDeviceStatus, refresh } = useHealth();
@@ -154,7 +165,7 @@ export default function DevicesScreen() {
 
             {/* Watch HR */}
             <View style={styles.bleRow}>
-              <View style={styles.bleDot(watchHr.status === 'connected')} />
+              <View style={bleDotStyle(watchHr.status === 'connected')} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.bleName}>
                   ⌚ Heart Rate Sensor
@@ -185,7 +196,7 @@ export default function DevicesScreen() {
 
             {/* Treadmill */}
             <View style={styles.bleRow}>
-              <View style={styles.bleDot(treadmill.status === 'connected' || treadmill.status === 'recording')} />
+              <View style={bleDotStyle(treadmill.status === 'connected' || treadmill.status === 'recording')} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.bleName}>
                   🏃 Treadmill (FTMS)
@@ -274,13 +285,6 @@ const styles = StyleSheet.create({
   bleName: { fontSize: 14, fontWeight: '600', color: '#111', marginBottom: 2 },
   bleStatus: { fontSize: 12, color: '#888' },
   bleAction: { fontSize: 14, color: '#E53935', fontWeight: '700', paddingLeft: 8 },
-  bleDot: (connected: boolean) => ({
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: connected ? '#43A047' : '#ccc',
-    marginRight: 10,
-  }),
 });
 
 

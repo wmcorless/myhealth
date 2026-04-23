@@ -8,11 +8,16 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
+  Linking,
+  Clipboard,
+  Alert,
 } from 'react-native';
 import { Device } from 'react-native-ble-plx';
 import { useTreadmill } from '../context/TreadmillContext';
 import { useWatchHR } from '../context/WatchHRContext';
 import { usePreferences } from '../context/PreferencesContext';
+
+const NORDICFTMS_URL = 'https://github.com/nordicftms/NordicFTMS/releases/latest';
 
 function kphToDisplay(kph: number, useMiles: boolean): string {
   if (kph === 0) return '0.0';
@@ -51,7 +56,7 @@ export default function TreadmillScreen() {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      if (tm.status !== 'recording') setElapsed(0);
+      setElapsed(0);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -98,19 +103,61 @@ export default function TreadmillScreen() {
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>NordicTrack X22i setup</Text>
             <Text style={styles.infoText}>
-              The X22i requires the free <Text style={{ fontWeight: '700' }}>NordicFTMS</Text> app
-              sideloaded onto the treadmill's Android system.{'\n\n'}
-              One-time ADB setup:{'\n'}
-              1. Tap the white top-left corner 10×{'\n'}
-              2. Wait 7 s{'\n'}
-              3. Tap 10× again → Developer options → enable USB debugging{'\n'}
-              4. Connect your PC via USB or over Wi-Fi:{'\n'}
+              The X22i needs the free <Text style={{ fontWeight: '700' }}>NordicFTMS</Text> app
+              sideloaded onto its Android console to broadcast FTMS over Bluetooth.
+            </Text>
+
+            {/* Option 1: WiFi — open URL on treadmill browser */}
+            <Text style={styles.methodTitle}>📶  Option 1 — Install via WiFi (easiest)</Text>
+            <Text style={styles.infoText}>
+              1. On the treadmill console, open the browser{'\n'}
+              2. Navigate to the URL below — it opens the APK download page{'\n'}
+              3. Download and tap <Text style={{ fontStyle: 'italic' }}>Install</Text>
+            </Text>
+            <TouchableOpacity
+              style={styles.urlBox}
+              onPress={() => {
+                Clipboard.setString(NORDICFTMS_URL);
+                Alert.alert('Copied', 'URL copied to clipboard');
+              }}
+            >
+              <Text style={styles.urlText}>{NORDICFTMS_URL}</Text>
+              <Text style={styles.urlHint}>Tap to copy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.secondaryBtnSmall}
+              onPress={() => Linking.openURL(NORDICFTMS_URL).catch(() => {})}
+            >
+              <Text style={styles.secondaryBtnSmallText}>Open on this phone →</Text>
+            </TouchableOpacity>
+
+            {/* Option 2: USB flash drive */}
+            <Text style={[styles.methodTitle, { marginTop: 14 }]}>💾  Option 2 — Install via USB flash drive</Text>
+            <Text style={styles.infoText}>
+              1. Download the NordicFTMS APK to a USB flash drive on a PC{'\n'}
+              2. Plug the flash drive into the X22i's USB-A port{'\n'}
+              3. Use the treadmill's file manager to locate and install the APK{'\n'}
+              4. Enable <Text style={{ fontStyle: 'italic' }}>Install from unknown sources</Text> if prompted
+            </Text>
+
+            {/* Option 3: ADB over WiFi (advanced) */}
+            <Text style={[styles.methodTitle, { marginTop: 14 }]}>🔧  Option 3 — ADB over WiFi (advanced)</Text>
+            <Text style={styles.infoText}>
+              1. Tap white top-left corner 10× → wait 7 s → tap 10× again{'\n'}
+              2. Enable <Text style={{ fontStyle: 'italic' }}>USB debugging</Text> in Developer options{'\n'}
+              3. From a PC on the same network:{'\n'}
               {'   '}
-              <Text style={{ fontFamily: 'monospace' }}>adb connect &lt;treadmill-ip&gt;:5555</Text>
-              {'\n'}
-              5. Install: <Text style={{ fontFamily: 'monospace' }}>adb install NordicFTMS.apk</Text>
-              {'\n\n'}
-              After install, start the NordicFTMS app on the treadmill, then scan here.
+              <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                adb connect &lt;treadmill-ip&gt;:5555{'\n'}
+              </Text>
+              {'   '}
+              <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                adb install NordicFTMS.apk
+              </Text>
+            </Text>
+
+            <Text style={[styles.infoText, { marginTop: 10, color: '#888' }]}>
+              After install, launch NordicFTMS on the treadmill, then tap Scan above.
             </Text>
           </View>
         </ScrollView>
@@ -360,4 +407,28 @@ const styles = StyleSheet.create({
   },
   infoTitle: { fontSize: 14, fontWeight: '700', color: '#1E88E5', marginBottom: 8 },
   infoText: { fontSize: 13, color: '#444', lineHeight: 20 },
+  methodTitle: { fontSize: 13, fontWeight: '700', color: '#1E88E5', marginTop: 12, marginBottom: 4 },
+  urlBox: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#BBDEFB',
+  },
+  urlText: { fontSize: 12, color: '#1E88E5', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' },
+  urlHint: { fontSize: 11, color: '#aaa', marginTop: 2 },
+  secondaryBtnSmall: {
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1E88E5',
+    marginTop: 4,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+  },
+  secondaryBtnSmallText: { color: '#1E88E5', fontWeight: '600', fontSize: 13 },
 });

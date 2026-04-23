@@ -8,7 +8,8 @@ import React, {
 import { Platform } from 'react-native';
 import { Device } from 'react-native-ble-plx';
 import { TreadmillData } from '../types/health';
-import { waitForBleReady, scanForTreadmills, connectTreadmill } from '../services/treadmillBleService';
+import { waitForBleReady } from '../services/bleManager';
+import { scanForTreadmills, connectTreadmill } from '../services/treadmillBleService';
 import { saveTreadmillSession } from '../services/database';
 
 export type TreadmillStatus =
