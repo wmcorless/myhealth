@@ -127,7 +127,7 @@ export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
     if (!ready) return {};
     const start = new Date();
     start.setHours(0, 0, 0, 0);
-    const filter = {
+    const todayFilter = {
       timeRangeFilter: {
         operator: 'between' as const,
         startTime: start.toISOString(),
@@ -135,21 +135,36 @@ export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
       },
     };
 
-    const [stepsRes, distRes, activeCalRes, totalCalRes, restHRRes, exRes] = await Promise.all([
-      readRecords('Steps', filter),
-      readRecords('Distance', filter),
-      readRecords('ActiveCaloriesBurned', filter),
-      readRecords('TotalCaloriesBurned', filter),
-      readRecords('RestingHeartRate', filter),
-      readRecords('ExerciseSession', filter),
+    // Resting HR: Samsung Health writes it infrequently — look back 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const restHRFilter = {
+      timeRangeFilter: {
+        operator: 'between' as const,
+        startTime: sevenDaysAgo.toISOString(),
+        endTime: new Date().toISOString(),
+      },
+    };
+
+    const [stepsRes, distRes, activeCalRes, restHRRes, exRes] = await Promise.all([
+      readRecords('Steps', todayFilter),
+      readRecords('Distance', todayFilter),
+      readRecords('ActiveCaloriesBurned', todayFilter),
+      readRecords('RestingHeartRate', restHRFilter),
+      readRecords('ExerciseSession', todayFilter),
     ]);
 
-    const steps = (stepsRes.records as any[]).reduce((s, r) => s + r.count, 0);
-    const distanceMeters = (distRes.records as any[]).reduce((s, r) => s + (r.distance?.inMeters ?? 0), 0);
-    const activeCalories = (activeCalRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
-    const totalCalories = (totalCalRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
-    // Samsung Health syncs to TotalCaloriesBurned; fall back to active if total is empty
-    const calories = totalCalories > 0 ? totalCalories : activeCalories;
+    // Deduplicate across sources: group by app, sum non-overlapping intervals, take max
+    const steps = bestValueFromSources(stepsRes.records as any[], (r) => r.count);
+    const distanceMeters = bestValueFromSources(distRes.records as any[], (r) => r.distance?.inMeters ?? 0);
+
+    // Active calories only (TotalCaloriesBurned includes BMR ~2000 kcal — too high)
+    const activeCalories = bestValueFromSources(activeCalRes.records as any[], (r) => r.energy?.inKilocalories ?? 0);
+    // Fallback: sum energy from exercise sessions if ActiveCaloriesBurned is empty
+    const exerciseCalories = (exRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
+    const calories = activeCalories > 0 ? activeCalories : exerciseCalories;
+
     const restingHR = (restHRRes.records as any[]).at(-1)?.beatsPerMinute;
     const workouts: WorkoutSession[] = (exRes.records as any[]).map((r) => ({
       id: r.metadata?.id ?? String(Math.random()),
@@ -165,7 +180,56 @@ export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
   }
 }
 
-const MEAL_MAP: Record<number, BloodGlucoseSample['relationToMeal']> = {
+/**
+ * Sum values from non-overlapping time intervals (single source).
+ * Records are sorted by startTime ASC, then interval length DESC so that
+ * a daily aggregate is preferred over shorter segments with the same start.
+ */
+function sumNoOverlap(records: any[], getValue: (r: any) => number): number {
+  if (!records.length) return 0;
+  const intervals = records
+    .map((r) => ({
+      start: new Date(r.startTime).getTime(),
+      end: new Date(r.endTime).getTime(),
+      value: getValue(r),
+    }))
+    .sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+
+  let total = 0;
+  let coveredUntil = 0;
+  for (const iv of intervals) {
+    if (iv.start >= coveredUntil) {
+      total += iv.value;
+      coveredUntil = iv.end;
+    }
+    // Overlapping records from the same source are skipped
+  }
+  return total;
+}
+
+/**
+ * When multiple apps (e.g. Samsung Health + Google Health) each write the same
+ * metric to Health Connect, summing all records double-counts the same activity.
+ * Fix: group by data origin, sum non-overlapping intervals within each source,
+ * then return the maximum across sources (the authoritative source wins).
+ */
+function bestValueFromSources(records: any[], getValue: (r: any) => number): number {
+  if (!records.length) return 0;
+  const byOrigin: Record<string, any[]> = {};
+  for (const r of records as any[]) {
+    const origin = (r.metadata?.dataOrigin as string) ?? 'unknown';
+    if (!byOrigin[origin]) byOrigin[origin] = [];
+    byOrigin[origin].push(r);
+  }
+  let best = 0;
+  for (const recs of Object.values(byOrigin)) {
+    const total = sumNoOverlap(recs, getValue);
+    if (total > best) best = total;
+  }
+  return best;
+}
+
+: Record<number, BloodGlucoseSample['relationToMeal']> = {
   1: 'fasting',
   2: 'before_meal',
   3: 'after_meal',

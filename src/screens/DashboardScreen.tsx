@@ -75,7 +75,7 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.row}>
           <MetricCard label="Distance" value={fmt(distanceValue, 2)} unit={distanceUnit} color="#43A047" />
-          <MetricCard label="Calories" value={fmt(summary?.caloriesBurned)} unit="kcal" color="#FB8C00" />
+          <MetricCard label="Active Cal" value={fmt(summary?.caloriesBurned)} unit="kcal" color="#FB8C00" />
         </View>
         <View style={styles.row}>
           <MetricCard
