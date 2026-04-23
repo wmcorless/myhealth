@@ -52,6 +52,7 @@ const HC_OPTIONAL_PERMISSIONS = [
   { accessType: 'read', recordType: 'Distance' },
   { accessType: 'read', recordType: 'ExerciseSession' },
   { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
+  { accessType: 'read', recordType: 'TotalCaloriesBurned' },
   { accessType: 'read', recordType: 'RestingHeartRate' },
   { accessType: 'read', recordType: 'BloodGlucose' },
 ] as const;
@@ -134,17 +135,21 @@ export async function fetchTodaySummary(): Promise<Partial<DailySummary>> {
       },
     };
 
-    const [stepsRes, distRes, calRes, restHRRes, exRes] = await Promise.all([
+    const [stepsRes, distRes, activeCalRes, totalCalRes, restHRRes, exRes] = await Promise.all([
       readRecords('Steps', filter),
       readRecords('Distance', filter),
       readRecords('ActiveCaloriesBurned', filter),
+      readRecords('TotalCaloriesBurned', filter),
       readRecords('RestingHeartRate', filter),
       readRecords('ExerciseSession', filter),
     ]);
 
     const steps = (stepsRes.records as any[]).reduce((s, r) => s + r.count, 0);
     const distanceMeters = (distRes.records as any[]).reduce((s, r) => s + (r.distance?.inMeters ?? 0), 0);
-    const calories = (calRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
+    const activeCalories = (activeCalRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
+    const totalCalories = (totalCalRes.records as any[]).reduce((s, r) => s + (r.energy?.inKilocalories ?? 0), 0);
+    // Samsung Health syncs to TotalCaloriesBurned; fall back to active if total is empty
+    const calories = totalCalories > 0 ? totalCalories : activeCalories;
     const restingHR = (restHRRes.records as any[]).at(-1)?.beatsPerMinute;
     const workouts: WorkoutSession[] = (exRes.records as any[]).map((r) => ({
       id: r.metadata?.id ?? String(Math.random()),

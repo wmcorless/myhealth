@@ -13,6 +13,7 @@ import MetricCard from '../components/MetricCard';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import Logo from '../components/Logo';
 import { useHealth } from '../context/HealthContext';
+import { usePreferences } from '../context/PreferencesContext';
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -23,6 +24,7 @@ function fmt(val: number | undefined, decimals = 0): string {
 
 export default function DashboardScreen() {
   const { summary, devices, loading, refresh } = useHealth();
+  const { preferences } = usePreferences();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useFocusEffect(
@@ -34,9 +36,19 @@ export default function DashboardScreen() {
     }, [refresh])
   );
 
-  const distanceKm = summary?.totalDistanceMeters
-    ? summary.totalDistanceMeters / 1000
+  const distanceValue = summary?.totalDistanceMeters
+    ? preferences.distanceUnit === 'miles'
+      ? summary.totalDistanceMeters / 1609.344
+      : summary.totalDistanceMeters / 1000
     : undefined;
+  const distanceUnit = preferences.distanceUnit === 'miles' ? 'mi' : 'km';
+
+  const glucoseValue = summary?.latestBloodGlucose
+    ? preferences.glucoseUnit === 'mmoll'
+      ? summary.latestBloodGlucose.mgPerDl / 18.016
+      : summary.latestBloodGlucose.mgPerDl
+    : undefined;
+  const glucoseUnit = preferences.glucoseUnit === 'mmoll' ? 'mmol/L' : 'mg/dL';
 
   const latestHR = summary?.avgHeartRate;
 
@@ -59,7 +71,7 @@ export default function DashboardScreen() {
           <MetricCard label="Steps" value={fmt(summary?.steps)} unit="steps" color="#1E88E5" />
         </View>
         <View style={styles.row}>
-          <MetricCard label="Distance" value={fmt(distanceKm, 2)} unit="km" color="#43A047" />
+          <MetricCard label="Distance" value={fmt(distanceValue, 2)} unit={distanceUnit} color="#43A047" />
           <MetricCard label="Calories" value={fmt(summary?.caloriesBurned)} unit="kcal" color="#FB8C00" />
         </View>
         <View style={styles.row}>
@@ -78,8 +90,8 @@ export default function DashboardScreen() {
         <View style={styles.row}>
           <MetricCard
             label="Blood Glucose"
-            value={summary?.latestBloodGlucose ? String(summary.latestBloodGlucose.mgPerDl) : '—'}
-            unit="mg/dL"
+            value={glucoseValue !== undefined ? fmt(glucoseValue, preferences.glucoseUnit === 'mmoll' ? 1 : 0) : '—'}
+            unit={glucoseUnit}
             color="#00ACC1"
           />
           <MetricCard label="" value="" color="transparent" />

@@ -83,6 +83,15 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
         getTodayHeartRate(),
         getTodayBloodGlucose(),
       ]);
+
+      // Compute average heart rate from today's samples and inject into summary
+      if (heartRateSamples.length > 0) {
+        const avg = Math.round(
+          heartRateSamples.reduce((s, h) => s + h.bpm, 0) / heartRateSamples.length
+        );
+        summary.avgHeartRate = avg;
+      }
+
       dispatch({ type: 'LOADED', summary, heartRateSamples, bloodGlucoseSamples });
 
       // Persist to local database (fire and forget)
