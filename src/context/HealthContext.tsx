@@ -86,10 +86,16 @@ export function HealthProvider({ children }: { children: React.ReactNode }) {
 
       // Compute average heart rate from today's samples and inject into summary
       if (heartRateSamples.length > 0) {
-        const avg = Math.round(
-          heartRateSamples.reduce((s, h) => s + h.bpm, 0) / heartRateSamples.length
-        );
-        summary.avgHeartRate = avg;
+        const sorted = heartRateSamples.map((h) => h.bpm).sort((a, b) => a - b);
+        summary.avgHeartRate = Math.round(sorted.reduce((s, v) => s + v, 0) / sorted.length);
+
+        // Estimate resting HR from lowest readings if Health Connect doesn't provide it
+        // (Samsung Health rarely syncs RestingHeartRate to Health Connect)
+        if (!summary.restingHeartRate && sorted.length >= 10) {
+          const count = Math.max(3, Math.floor(sorted.length * 0.1));
+          const est = Math.round(sorted.slice(0, count).reduce((s, v) => s + v, 0) / count);
+          if (est >= 40 && est <= 100) summary.restingHeartRate = est;
+        }
       }
 
       dispatch({ type: 'LOADED', summary, heartRateSamples, bloodGlucoseSamples });
