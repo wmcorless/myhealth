@@ -13,10 +13,14 @@ import {
 } from 'react-native';
 import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import { useHealth } from '../context/HealthContext';
+import { useWatchHR } from '../context/WatchHRContext';
+import { useTreadmill } from '../context/TreadmillContext';
 import { openHealthConnectInstallPage, openHealthConnectSettings } from '../services/healthConnectService';
 
 export default function DevicesScreen() {
   const { devices, connectSamsungHealth, refreshDeviceStatus, refresh } = useHealth();
+  const watchHr = useWatchHR();
+  const treadmill = useTreadmill();
   const [connecting, setConnecting] = useState(false);
   const appState = useRef(AppState.currentState);
   const waitingForReturn = useRef(false);
@@ -138,6 +142,84 @@ export default function DevicesScreen() {
             </View>
           </>
         )}
+
+        {/* ── Bluetooth Sensors ── */}
+        {!isIOS && (
+          <>
+            <View style={styles.separator} />
+            <Text style={styles.sectionTitle}>Bluetooth Sensors</Text>
+            <Text style={styles.description}>
+              Live heart rate and treadmill data over Bluetooth.
+            </Text>
+
+            {/* Watch HR */}
+            <View style={styles.bleRow}>
+              <View style={styles.bleDot(watchHr.status === 'connected')} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bleName}>
+                  ⌚ Heart Rate Sensor
+                  {watchHr.connectedDevice
+                    ? `  · ${watchHr.connectedDevice.localName ?? watchHr.connectedDevice.name}`
+                    : ''}
+                </Text>
+                <Text style={styles.bleStatus}>
+                  {watchHr.status === 'connected'
+                    ? `Connected${watchHr.liveHR ? ` · ${watchHr.liveHR} bpm` : ''}`
+                    : watchHr.status === 'scanning'
+                    ? 'Scanning…'
+                    : watchHr.status === 'connecting'
+                    ? 'Connecting…'
+                    : 'Not connected'}
+                </Text>
+              </View>
+              {watchHr.status === 'connected' ? (
+                <TouchableOpacity onPress={watchHr.disconnect}>
+                  <Text style={styles.bleAction}>Disconnect</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={watchHr.startScan}>
+                  <Text style={styles.bleAction}>Scan</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Treadmill */}
+            <View style={styles.bleRow}>
+              <View style={styles.bleDot(treadmill.status === 'connected' || treadmill.status === 'recording')} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bleName}>
+                  🏃 Treadmill (FTMS)
+                  {treadmill.connectedDevice
+                    ? `  · ${treadmill.connectedDevice.localName ?? treadmill.connectedDevice.name}`
+                    : ''}
+                </Text>
+                <Text style={styles.bleStatus}>
+                  {treadmill.status === 'connected'
+                    ? 'Connected'
+                    : treadmill.status === 'recording'
+                    ? '● Recording'
+                    : treadmill.status === 'scanning'
+                    ? 'Scanning…'
+                    : treadmill.status === 'connecting'
+                    ? 'Connecting…'
+                    : 'Not connected'}
+                </Text>
+              </View>
+              {(treadmill.status === 'connected' || treadmill.status === 'recording') && (
+                <TouchableOpacity onPress={treadmill.disconnect}>
+                  <Text style={styles.bleAction}>Disconnect</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={[styles.infoBox, { backgroundColor: '#FFF8E1' }]}>
+              <Text style={[styles.infoTitle, { color: '#F57F17' }]}>Galaxy Watch 7 heart rate</Text>
+              <Text style={styles.infoText}>
+                Install the free <Text style={{ fontWeight: '700' }}>Heart Rate Broadcast</Text> app from the Galaxy Store on your watch, then tap Scan above.
+              </Text>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -180,6 +262,25 @@ const styles = StyleSheet.create({
   },
   infoTitle: { fontSize: 14, fontWeight: '700', color: '#1E88E5', marginBottom: 6 },
   infoText: { fontSize: 13, color: '#444', lineHeight: 20 },
+  bleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    elevation: 1,
+  },
+  bleName: { fontSize: 14, fontWeight: '600', color: '#111', marginBottom: 2 },
+  bleStatus: { fontSize: 12, color: '#888' },
+  bleAction: { fontSize: 14, color: '#E53935', fontWeight: '700', paddingLeft: 8 },
+  bleDot: (connected: boolean) => ({
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: connected ? '#43A047' : '#ccc',
+    marginRight: 10,
+  }),
 });
 
 

@@ -5,12 +5,15 @@ import { StatusBar } from 'expo-status-bar';
 import { Text } from 'react-native';
 import { HealthProvider } from './src/context/HealthContext';
 import { PreferencesProvider } from './src/context/PreferencesContext';
+import { WatchHRProvider } from './src/context/WatchHRContext';
+import { TreadmillProvider } from './src/context/TreadmillContext';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import DashboardScreen from './src/screens/DashboardScreen';
 import HeartRateScreen from './src/screens/HeartRateScreen';
 import WorkoutsScreen from './src/screens/WorkoutsScreen';
 import DevicesScreen from './src/screens/DevicesScreen';
 import PreferencesScreen from './src/screens/PreferencesScreen';
+import TreadmillScreen from './src/screens/TreadmillScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -23,6 +26,8 @@ export default function App() {
     <ErrorBoundary>
       <PreferencesProvider>
         <HealthProvider>
+          <WatchHRProvider>
+            <TreadmillProvider>
             <NavigationContainer>
               <StatusBar style="dark" />
               <Tab.Navigator
@@ -55,12 +60,19 @@ export default function App() {
                   options={{ tabBarIcon: () => <TabIcon icon="📱" /> }}
                 />
                 <Tab.Screen
+                  name="Treadmill"
+                  component={TreadmillScreen}
+                  options={{ tabBarIcon: () => <TabIcon icon="🏃" /> }}
+                />
+                <Tab.Screen
                   name="Preferences"
                   component={PreferencesScreen}
                   options={{ tabBarIcon: () => <TabIcon icon="⚙️" /> }}
                 />
               </Tab.Navigator>
             </NavigationContainer>
+            </TreadmillProvider>
+          </WatchHRProvider>
           </HealthProvider>
       </PreferencesProvider>
     </ErrorBoundary>

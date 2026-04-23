@@ -32,6 +32,11 @@
       "permissions": [
         "android.permission.ACTIVITY_RECOGNITION",
         "android.permission.BODY_SENSORS",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.health.READ_HEART_RATE",
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_DISTANCE",
@@ -47,6 +52,14 @@
     },
     "plugins": [
       "./plugins/withHealthConnectActivity",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysPermission": "Allow MyHealth to connect to your Bluetooth heart rate sensor during workouts."
+        }
+      ],
       "expo-web-browser",
       "expo-secure-store",
       "expo-dev-client",

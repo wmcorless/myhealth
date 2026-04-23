@@ -14,6 +14,7 @@ import DeviceStatusBadge from '../components/DeviceStatusBadge';
 import Logo from '../components/Logo';
 import { useHealth } from '../context/HealthContext';
 import { usePreferences } from '../context/PreferencesContext';
+import { useWatchHR } from '../context/WatchHRContext';
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -25,6 +26,7 @@ function fmt(val: number | undefined, decimals = 0): string {
 export default function DashboardScreen() {
   const { summary, devices, loading, refresh } = useHealth();
   const { preferences } = usePreferences();
+  const { liveHR, status: watchStatus } = useWatchHR();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useFocusEffect(
@@ -50,7 +52,8 @@ export default function DashboardScreen() {
     : undefined;
   const glucoseUnit = preferences.glucoseUnit === 'mmoll' ? 'mmol/L' : 'mg/dL';
 
-  const latestHR = summary?.avgHeartRate;
+  const latestHR = liveHR ?? summary?.avgHeartRate;
+  const isLiveHR = watchStatus === 'connected' && liveHR != null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -67,7 +70,7 @@ export default function DashboardScreen() {
         )}
 
         <View style={styles.row}>
-          <MetricCard label="Heart Rate" value={fmt(latestHR)} unit="bpm" color="#E53935" />
+          <MetricCard label={isLiveHR ? 'Heart Rate 🔴' : 'Heart Rate'} value={fmt(latestHR)} unit="bpm" color="#E53935" />
           <MetricCard label="Steps" value={fmt(summary?.steps)} unit="steps" color="#1E88E5" />
         </View>
         <View style={styles.row}>
