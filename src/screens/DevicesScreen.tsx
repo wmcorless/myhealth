@@ -85,6 +85,11 @@ export default function DevicesScreen() {
             ? 'Grant access to Apple HealthKit to sync heart rate, steps, distance, and workouts.'
             : 'Grant access to Android Health Connect to sync steps, heart rate, calories, and blood glucose from your Samsung devices.'}
         </Text>
+        {!isIOS && (
+          <Text style={styles.watchHint}>
+            Galaxy Watch data comes through Samsung Health/Health Connect. No direct watch pairing is needed in MyHealth.
+          </Text>
+        )}
 
         {samsungConnected && (
           <View style={styles.connectedRow}>
@@ -146,6 +151,7 @@ const styles = StyleSheet.create({
   separator: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 6 },
   description: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 14 },
+  watchHint: { fontSize: 13, color: '#555', lineHeight: 18, marginBottom: 10 },
   connectedRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   connectedDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#43A047', marginRight: 8 },
   connectedText: { fontSize: 14, color: '#43A047', fontWeight: '600' },

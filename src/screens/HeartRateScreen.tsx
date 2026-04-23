@@ -11,7 +11,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useHealth } from '../context/HealthContext';
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 10_000;
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -102,8 +102,8 @@ export default function HeartRateScreen() {
           }
           ListEmptyComponent={
             <Text style={styles.empty}>
-              No heart rate data yet. Make sure Samsung Health is connected and your watch is on.
-              {'\n\n'}Updates every 30 seconds automatically.
+              No heart rate data yet. Make sure Samsung Health is connected and your Galaxy Watch is on and worn.
+              {'\n\n'}Updates every 10 seconds automatically.
             </Text>
           }
           renderItem={({ item }) => (

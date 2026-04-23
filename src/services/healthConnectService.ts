@@ -15,7 +15,7 @@ const HC_PACKAGE = 'com.google.android.apps.healthdata';
 export async function isHealthConnectAvailable(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
   try {
-    const status = await getSdkStatus(HC_PACKAGE);
+    const status = await getSdkStatus();
     return status === SdkAvailabilityStatus.SDK_AVAILABLE;
   } catch {
     return false;
@@ -35,9 +35,9 @@ export async function hasHealthConnectPermissions(): Promise<boolean> {
 
 export async function initHealthConnect(): Promise<boolean> {
   try {
-    const status = await getSdkStatus(HC_PACKAGE);
+    const status = await getSdkStatus();
     if (status !== SdkAvailabilityStatus.SDK_AVAILABLE) return false;
-    return initialize(HC_PACKAGE);
+    return initialize();
   } catch {
     return false;
   }
@@ -83,7 +83,7 @@ export async function openHealthConnectSettings(): Promise<void> {
 }
 
 export async function openHealthConnectInstallPage(): Promise<void> {
-  await Linking.openURL(`market://details?id=${HC_PACKAGE}`).catch(() =>
+  await Linking.openURL(`market://details?id=${HC_PACKAGE}&url=healthconnect%3A%2F%2Fonboarding`).catch(() =>
     Linking.openURL(`https://play.google.com/store/apps/details?id=${HC_PACKAGE}`)
   );
 }
