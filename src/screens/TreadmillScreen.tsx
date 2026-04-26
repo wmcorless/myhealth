@@ -17,7 +17,7 @@ import { useTreadmill } from '../context/TreadmillContext';
 import { useWatchHR } from '../context/WatchHRContext';
 import { usePreferences } from '../context/PreferencesContext';
 
-const NORDICFTMS_URL = 'https://github.com/nordicftms/NordicFTMS/releases/latest';
+const MYHEALTH_BRIDGE_URL = 'https://github.com/wmcorless/myhealth/releases/tag/treadmill-bridge-latest';
 
 function kphToDisplay(kph: number, useMiles: boolean): string {
   if (kph === 0) return '0.0';
@@ -103,30 +103,31 @@ export default function TreadmillScreen() {
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>NordicTrack X22i setup</Text>
             <Text style={styles.infoText}>
-              The X22i needs the free <Text style={{ fontWeight: '700' }}>NordicFTMS</Text> app
-              sideloaded onto its Android console to broadcast FTMS over Bluetooth.
+              Install the free <Text style={{ fontWeight: '700' }}>MyHealth Bridge</Text> app
+              on the treadmill's Android console. It reads live speed, incline and heart rate
+              from iFit and broadcasts them to this phone over Bluetooth FTMS — no cables needed.
             </Text>
 
             {/* Option 1: WiFi — open URL on treadmill browser */}
             <Text style={styles.methodTitle}>📶  Option 1 — Install via WiFi (easiest)</Text>
             <Text style={styles.infoText}>
               1. On the treadmill console, open the browser{'\n'}
-              2. Navigate to the URL below — it opens the APK download page{'\n'}
-              3. Download and tap <Text style={{ fontStyle: 'italic' }}>Install</Text>
+              2. Navigate to the URL below — download <Text style={{ fontStyle: 'italic' }}>myhealth-bridge.apk</Text>{'\n'}
+              3. Tap the downloaded file and tap <Text style={{ fontStyle: 'italic' }}>Install</Text>
             </Text>
             <TouchableOpacity
               style={styles.urlBox}
               onPress={() => {
-                Clipboard.setString(NORDICFTMS_URL);
+                Clipboard.setString(MYHEALTH_BRIDGE_URL);
                 Alert.alert('Copied', 'URL copied to clipboard');
               }}
             >
-              <Text style={styles.urlText}>{NORDICFTMS_URL}</Text>
+              <Text style={styles.urlText}>{MYHEALTH_BRIDGE_URL}</Text>
               <Text style={styles.urlHint}>Tap to copy</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.secondaryBtnSmall}
-              onPress={() => Linking.openURL(NORDICFTMS_URL).catch(() => {})}
+              onPress={() => Linking.openURL(MYHEALTH_BRIDGE_URL).catch(() => {})}
             >
               <Text style={styles.secondaryBtnSmallText}>Open on this phone →</Text>
             </TouchableOpacity>
@@ -134,7 +135,7 @@ export default function TreadmillScreen() {
             {/* Option 2: USB flash drive */}
             <Text style={[styles.methodTitle, { marginTop: 14 }]}>💾  Option 2 — Install via USB flash drive</Text>
             <Text style={styles.infoText}>
-              1. Download the NordicFTMS APK to a USB flash drive on a PC{'\n'}
+              1. Download <Text style={{ fontStyle: 'italic' }}>myhealth-bridge.apk</Text> to a USB flash drive on a PC{'\n'}
               2. Plug the flash drive into the X22i's USB-A port{'\n'}
               3. Use the treadmill's file manager to locate and install the APK{'\n'}
               4. Enable <Text style={{ fontStyle: 'italic' }}>Install from unknown sources</Text> if prompted
@@ -152,12 +153,16 @@ export default function TreadmillScreen() {
               </Text>
               {'   '}
               <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
-                adb install NordicFTMS.apk
+                adb install myhealth-bridge.apk{'\n'}
+              </Text>
+              {'   '}
+              <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                adb shell pm grant com.wmcorless.myhealth.bridge android.permission.READ_LOGS
               </Text>
             </Text>
 
             <Text style={[styles.infoText, { marginTop: 10, color: '#888' }]}>
-              After install, launch NordicFTMS on the treadmill, then tap Scan above.
+              After install, open MyHealth Bridge on the treadmill and tap Start Broadcasting, then tap Scan above.
             </Text>
           </View>
         </ScrollView>
