@@ -27,17 +27,30 @@ Requires Android SDK and JDK 17. The built APK is at `app/build/outputs/apk/debu
 
 ## Installation on the NordicTrack X22i
 
-1. **Enable developer mode**: Tap the white corner of the screen 10× → wait 7 seconds → tap 10× again
-2. **Enable USB debugging** in Settings → Developer Options
-3. **Download the APK** to the treadmill console (browser or USB flash drive)
-4. **Install** via the file manager or Settings → Apps → Unknown sources
-5. **Grant log read permission** (one-time setup from a PC on the same WiFi network):
-   ```bash
-   adb connect <treadmill-ip-address>:5555
-   adb shell pm grant com.wmcorless.myhealth.bridge android.permission.READ_LOGS
-   ```
-6. Open **MyHealth Bridge** on the treadmill and tap **Start Broadcasting**
-7. The service auto-starts on reboot
+### Step 1 — Unlock maintenance mode
+
+1. On the treadmill, open the **Maintenance** menu
+2. Tap the blank white area **10 times**
+3. Wait **7 seconds**
+4. Tap the blank white area **10 more times**
+5. A **challenge code** appears on screen
+6. Visit **https://getresponsecode.com/** on your phone, enter the challenge code, and receive a response code
+7. Enter the response code on the treadmill to unlock maintenance/developer access
+
+### Step 2 — Download nordictrack.apk
+
+Open the **Browser** in the maintenance menu, navigate to the [Releases page](../../releases), and download `nordictrack.apk`. Tap the file to install (allow Unknown Sources if prompted).
+
+### Step 3 — Grant log permission (one-time, from a PC)
+
+```bash
+adb connect <treadmill-ip-address>:5555
+adb shell pm grant com.wmcorless.myhealth.bridge android.permission.READ_LOGS
+```
+
+### Step 4 — Start broadcasting
+
+Open **MyHealth Bridge** on the treadmill and tap **Start Broadcasting**. The service auto-starts on reboot.
 
 ## Credits
 

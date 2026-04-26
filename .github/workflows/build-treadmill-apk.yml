@@ -43,13 +43,13 @@ jobs:
       - name: Rename APK
         run: |
           cp treadmill-apk/app/build/outputs/apk/debug/app-debug.apk \
-             treadmill-apk/app/build/outputs/apk/debug/myhealth-bridge.apk
+             treadmill-apk/app/build/outputs/apk/debug/nordictrack.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: myhealth-bridge-apk
-          path: treadmill-apk/app/build/outputs/apk/debug/myhealth-bridge.apk
+          path: treadmill-apk/app/build/outputs/apk/debug/nordictrack.apk
           retention-days: 90
 
       - name: Create or update GitHub Release
@@ -65,16 +65,15 @@ jobs:
             live speed, incline, and heart rate to the **MyHealth** phone app via Bluetooth FTMS.
 
             ### Installation
-            1. Enable developer mode on the treadmill console (tap white corner 10× → wait 7 s → tap 10×)
-            2. Enable **USB debugging** in Developer Options
-            3. Download `myhealth-bridge.apk` onto the treadmill via browser or USB flash drive
-            4. Install the APK (Settings → Apps → allow Unknown Sources)
-            5. Grant log permission from a PC on the same WiFi network:
+            1. Follow the maintenance mode unlock steps in the MyHealth app (Preferences → Treadmill)
+            2. Download `nordictrack.apk` onto the treadmill via the maintenance browser
+            3. Install the APK (allow Unknown Sources if prompted)
+            4. Grant log permission from a PC on the same WiFi network:
                ```
                adb connect <treadmill-ip>:5555
                adb shell pm grant com.wmcorless.myhealth.bridge android.permission.READ_LOGS
                ```
-            6. Open **MyHealth Bridge** on the treadmill and tap **Start Broadcasting**
-            7. Open **MyHealth** on your phone → Preferences → Treadmill → Scan
-          files: treadmill-apk/app/build/outputs/apk/debug/myhealth-bridge.apk
+            5. Open **MyHealth Bridge** on the treadmill and tap **Start Broadcasting**
+            6. Open **MyHealth** on your phone → Preferences → Treadmill → Scan
+          files: treadmill-apk/app/build/outputs/apk/debug/nordictrack.apk
           make_latest: true

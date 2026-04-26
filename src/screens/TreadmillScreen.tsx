@@ -17,7 +17,8 @@ import { useTreadmill } from '../context/TreadmillContext';
 import { useWatchHR } from '../context/WatchHRContext';
 import { usePreferences } from '../context/PreferencesContext';
 
-const MYHEALTH_BRIDGE_URL = 'https://github.com/wmcorless/myhealth/releases/tag/treadmill-bridge-latest';
+const NORDICTRACK_APK_URL = 'https://github.com/wmcorless/myhealth/releases/tag/treadmill-bridge-latest';
+const RESPONSE_CODE_URL = 'https://getresponsecode.com/';
 
 function kphToDisplay(kph: number, useMiles: boolean): string {
   if (kph === 0) return '0.0';
@@ -45,6 +46,7 @@ export default function TreadmillScreen() {
 
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [expandedModel, setExpandedModel] = useState<string | null>('x22i');
 
   // Start/stop local elapsed timer
   useEffect(() => {
@@ -101,69 +103,94 @@ export default function TreadmillScreen() {
             <Text style={styles.primaryBtnText}>Scan for Treadmill</Text>
           </TouchableOpacity>
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>NordicTrack X22i setup</Text>
-            <Text style={styles.infoText}>
-              Install the free <Text style={{ fontWeight: '700' }}>MyHealth Bridge</Text> app
-              on the treadmill's Android console. It reads live speed, incline and heart rate
-              from iFit and broadcasts them to this phone over Bluetooth FTMS — no cables needed.
-            </Text>
+            <Text style={styles.infoTitle}>Supported Treadmills</Text>
 
-            {/* Option 1: WiFi — open URL on treadmill browser */}
-            <Text style={styles.methodTitle}>📶  Option 1 — Install via WiFi (easiest)</Text>
-            <Text style={styles.infoText}>
-              1. On the treadmill console, open the browser{'\n'}
-              2. Navigate to the URL below — download <Text style={{ fontStyle: 'italic' }}>myhealth-bridge.apk</Text>{'\n'}
-              3. Tap the downloaded file and tap <Text style={{ fontStyle: 'italic' }}>Install</Text>
-            </Text>
+            {/* ── NordicTrack X22i ── */}
             <TouchableOpacity
-              style={styles.urlBox}
-              onPress={() => {
-                Clipboard.setString(MYHEALTH_BRIDGE_URL);
-                Alert.alert('Copied', 'URL copied to clipboard');
-              }}
+              style={styles.modelHeader}
+              onPress={() => setExpandedModel(expandedModel === 'x22i' ? null : 'x22i')}
             >
-              <Text style={styles.urlText}>{MYHEALTH_BRIDGE_URL}</Text>
-              <Text style={styles.urlHint}>Tap to copy</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.secondaryBtnSmall}
-              onPress={() => Linking.openURL(MYHEALTH_BRIDGE_URL).catch(() => {})}
-            >
-              <Text style={styles.secondaryBtnSmallText}>Open on this phone →</Text>
+              <Text style={styles.modelName}>🏃  NordicTrack X22i</Text>
+              <Text style={styles.modelChevron}>{expandedModel === 'x22i' ? '▼' : '▶'}</Text>
             </TouchableOpacity>
 
-            {/* Option 2: USB flash drive */}
-            <Text style={[styles.methodTitle, { marginTop: 14 }]}>💾  Option 2 — Install via USB flash drive</Text>
-            <Text style={styles.infoText}>
-              1. Download <Text style={{ fontStyle: 'italic' }}>myhealth-bridge.apk</Text> to a USB flash drive on a PC{'\n'}
-              2. Plug the flash drive into the X22i's USB-A port{'\n'}
-              3. Use the treadmill's file manager to locate and install the APK{'\n'}
-              4. Enable <Text style={{ fontStyle: 'italic' }}>Install from unknown sources</Text> if prompted
-            </Text>
+            {expandedModel === 'x22i' && (
+              <View style={styles.modelContent}>
+                <Text style={styles.infoText}>
+                  Install <Text style={{ fontWeight: '700' }}>MyHealth Bridge</Text> on the treadmill
+                  console once. It reads live speed, incline and heart rate from iFit and broadcasts
+                  them to this phone over Bluetooth — no cables needed.
+                </Text>
 
-            {/* Option 3: ADB over WiFi (advanced) */}
-            <Text style={[styles.methodTitle, { marginTop: 14 }]}>🔧  Option 3 — ADB over WiFi (advanced)</Text>
-            <Text style={styles.infoText}>
-              1. Tap white top-left corner 10× → wait 7 s → tap 10× again{'\n'}
-              2. Enable <Text style={{ fontStyle: 'italic' }}>USB debugging</Text> in Developer options{'\n'}
-              3. From a PC on the same network:{'\n'}
-              {'   '}
-              <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
-                adb connect &lt;treadmill-ip&gt;:5555{'\n'}
-              </Text>
-              {'   '}
-              <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
-                adb install myhealth-bridge.apk{'\n'}
-              </Text>
-              {'   '}
-              <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
-                adb shell pm grant com.wmcorless.myhealth.bridge android.permission.READ_LOGS
-              </Text>
-            </Text>
+                {/* Step 1: Maintenance mode */}
+                <Text style={styles.stepTitle}>Step 1 — Unlock maintenance mode</Text>
+                <Text style={styles.infoText}>
+                  1. On the treadmill, tap the menu and open <Text style={{ fontWeight: '600' }}>Maintenance</Text>{'\n'}
+                  2. Tap the blank white area <Text style={{ fontWeight: '600' }}>10 times</Text>{'\n'}
+                  3. Wait <Text style={{ fontWeight: '600' }}>7 seconds</Text>{'\n'}
+                  4. Tap the blank white area <Text style={{ fontWeight: '600' }}>10 more times</Text>{'\n'}
+                  5. A <Text style={{ fontWeight: '600' }}>challenge code</Text> appears on screen{'\n'}
+                  6. On your phone, open the site below, enter the code, and get the response{'\n'}
+                  7. Enter the response code on the treadmill to unlock
+                </Text>
+                <TouchableOpacity
+                  style={styles.secondaryBtnSmall}
+                  onPress={() => Linking.openURL(RESPONSE_CODE_URL).catch(() => {})}
+                >
+                  <Text style={styles.secondaryBtnSmallText}>🔑  Open getresponsecode.com →</Text>
+                </TouchableOpacity>
 
-            <Text style={[styles.infoText, { marginTop: 10, color: '#888' }]}>
-              After install, open MyHealth Bridge on the treadmill and tap Start Broadcasting, then tap Scan above.
-            </Text>
+                {/* Step 2: Download via browser */}
+                <Text style={styles.stepTitle}>Step 2 — Download MyHealth Bridge</Text>
+                <Text style={styles.infoText}>
+                  After unlocking, open the <Text style={{ fontWeight: '600' }}>Browser</Text> in the
+                  maintenance menu. Navigate to the URL below and download{' '}
+                  <Text style={{ fontStyle: 'italic' }}>nordictrack.apk</Text>, then tap{' '}
+                  <Text style={{ fontStyle: 'italic' }}>Install</Text>.
+                </Text>
+                <TouchableOpacity
+                  style={styles.urlBox}
+                  onPress={() => {
+                    Clipboard.setString(NORDICTRACK_APK_URL);
+                    Alert.alert('Copied', 'URL copied to clipboard');
+                  }}
+                >
+                  <Text style={styles.urlText}>{NORDICTRACK_APK_URL}</Text>
+                  <Text style={styles.urlHint}>Tap to copy — then type it in the treadmill browser</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.secondaryBtnSmall}
+                  onPress={() => Linking.openURL(NORDICTRACK_APK_URL).catch(() => {})}
+                >
+                  <Text style={styles.secondaryBtnSmallText}>Open release page on this phone →</Text>
+                </TouchableOpacity>
+
+                {/* Step 3: Log permission */}
+                <Text style={styles.stepTitle}>Step 3 — Grant log permission (one-time, from a PC)</Text>
+                <Text style={styles.infoText}>
+                  From a PC on the same WiFi network, run these two commands:
+                </Text>
+                <View style={styles.codeBlock}>
+                  <Text style={styles.codeText}>adb connect &lt;treadmill-ip&gt;:5555</Text>
+                  <Text style={styles.codeText}>
+                    adb shell pm grant com.wmcorless.myhealth.bridge android.permission.READ_LOGS
+                  </Text>
+                </View>
+
+                {/* Step 4: Start */}
+                <Text style={styles.stepTitle}>Step 4 — Start broadcasting</Text>
+                <Text style={[styles.infoText, { marginBottom: 4 }]}>
+                  Open <Text style={{ fontWeight: '600' }}>MyHealth Bridge</Text> on the treadmill and
+                  tap <Text style={{ fontWeight: '600' }}>Start Broadcasting</Text>. Then tap{' '}
+                  <Text style={{ fontWeight: '600' }}>Scan for Treadmill</Text> above.
+                </Text>
+              </View>
+            )}
+
+            {/* ── Placeholder for future models ── */}
+            <View style={[styles.modelHeader, { opacity: 0.4 }]}>
+              <Text style={styles.modelName}>More treadmills coming soon…</Text>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -412,7 +439,35 @@ const styles = StyleSheet.create({
   },
   infoTitle: { fontSize: 14, fontWeight: '700', color: '#1E88E5', marginBottom: 8 },
   infoText: { fontSize: 13, color: '#444', lineHeight: 20 },
-  methodTitle: { fontSize: 13, fontWeight: '700', color: '#1E88E5', marginTop: 12, marginBottom: 4 },
+
+  modelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  modelName: { fontSize: 14, fontWeight: '700', color: '#333', flex: 1 },
+  modelChevron: { fontSize: 12, color: '#888', marginLeft: 8 },
+  modelContent: { paddingTop: 8 },
+
+  stepTitle: { fontSize: 13, fontWeight: '700', color: '#1E88E5', marginTop: 14, marginBottom: 4 },
+
+  codeBlock: {
+    backgroundColor: '#1E1E2E',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  codeText: {
+    fontSize: 11,
+    color: '#A8D8A8',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    lineHeight: 18,
+  },
   urlBox: {
     backgroundColor: '#fff',
     borderRadius: 8,
