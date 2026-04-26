@@ -2,7 +2,7 @@ name: Build Treadmill Bridge APK
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'treadmill-apk/**'
       - '.github/workflows/build-treadmill-apk.yml'
@@ -10,6 +10,9 @@ on:
     paths:
       - 'treadmill-apk/**'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
