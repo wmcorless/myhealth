@@ -321,7 +321,7 @@ function MetricTile({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F6FA' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24, paddingBottom: 40 },
   content: { padding: 16, paddingBottom: 40 },
 
   headerRow: {
